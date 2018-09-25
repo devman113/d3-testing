@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+.node rect {
+  cursor: pointer;
+  fill: #fff;
+  fill-opacity: 0.5;
+  stroke: #3182bd;
+  stroke-width: 1.5px;
+}
+.node text {
+  font: 12px sans-serif;
+  pointer-events: none;
+}
+.link {
+  fill: none;
+  stroke: #9ecae1;
+  stroke-width: 1.5px;
+}
+</style>
+<body>
+  <input name="collapseAll" 
+  type="button" 
+  value="Collapse All" 
+  onclick="collapseHierarchy()" />
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+  var margin = {top: 30, right: 20, bottom: 30, left: 20},
+      width = 960,
+      barHeight = 25,
+      barWidth = 480;
+  var i = 0,
+      duration = 400,
+      root;
+  var diagonal = d3.linkHorizontal()
+      .x(function(d) { return d.y; })
+      .y(function(d) { return d.x; });
+  var svg = d3.select("body").append("svg")
+      .attr("width", width) // + margin.left + margin.right)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+  function update(source) {
+    // Compute the flattened node list.
+    var nodes = root.descendants();
+    var height = Math.max(500, nodes.length * barHeight + margin.top + margin.bottom);
+    d3.select("svg").transition()
+        .duration(duration)
+        .attr("height", height);
+    d3.select(self.frameElement).transition()
+        .duration(duration)
+        .style("height", height + "px");
+    // Compute the "layout". TODO https://github.com/d3/d3-hierarchy/issues/67
+    var index = -1;
+    root.eachBefore(function(n) {
+      n.x = ++index * barHeight;
+      n.y = n.depth * 20;
+    });
+    // Update the nodes…
+    var node = svg.selectAll(".node")
+      .data(nodes, function(d) { return d.id || (d.id = ++i); });
+    var nodeEnter = node.enter().append("g")
+        .attr("class", "node")
+        .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+        .style("opacity", 0);
+    // Enter any new nodes at the parent's previous position.
+    nodeEnter.append("rect")
+        .attr("y", -barHeight / 2)
+        .attr("height", barHeight)
+        .attr("width", barWidth)
+        .style("fill", color)
+        .on("click", click);
+    nodeEnter.append("text")
+        .attr("dy", 3.5)
+        .attr("dx", 5.5)
+        .text(function(d) { return d.data.name; });
+    // Transition nodes to their new position.
+    nodeEnter.transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+        .style("opacity", 1);
+    node.transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+        .style("opacity", 1)
+      .select("rect")
+        .style("fill", color);
+    // Transition exiting nodes to the parent's new position.
+    node.exit().transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+        .style("opacity", 0)
+        .remove();
+    // Update the links…
+    var link = svg.selectAll(".link")
+      .data(root.links(), function(d) { return d.target.id; });
+    // Enter any new links at the parent's previous position.
+    link.enter().insert("path", "g")
+        .attr("class", "link")
+        .attr("d", function(d) {
+          var o = {x: source.x0, y: source.y0};
+          return diagonal({source: o, target: o});
+        })
+      .transition()
+        .duration(duration)
+        .attr("d", diagonal);
+    // Transition links to their new position.
+    link.transition()
+        .duration(duration)
+        .attr("d", diagonal);
+    // Transition exiting nodes to the parent's new position.
+    link.exit().transition()
+        .duration(duration)
+        .attr("d", function(d) {
+          var o = {x: source.x, y: source.y};
+          return diagonal({source: o, target: o});
+        })
+        .remove();
+    // Stash the old positions for transition.
+    root.each(function(d) {
+      d.x0 = d.x;
+      d.y0 = d.y;
+    });
+  }
+  // Toggle children on click.
+  function click(d) {
+    if (d.children) {
+      d._children = d.children;
+      d.children = null;
+    } else {
+      d.children = d._children;
+      d._children = null;
+    }
+    update(d);
+  }
+  function color(d) {
+    return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+  }
+  var hierarchyData;
+  d3.json("http://localhost:8000/mockData.json", function(error, dataSet) {
+    var propertyKeys = [];
+    if (dataSet.length > 0) {
+      propertyKeys = Object.keys(dataSet[0]);
+      var select = d3.select('body')
+        .append('select')
+          .attr('class','propertyList')
+          .on('change',onchange)
+
+      var options = select
+        .selectAll('option')
+        .data(propertyKeys).enter()
+        .append('option')
+          .text(function (d) { return d; });
+          
+      onchange();
+      
+      function onchange() {
+        var selectedColumn = d3.select('.propertyList').property('value');
+        
+        var columnList = orderChange([].concat(propertyKeys), selectedColumn);
+        hierarchyData = generateHierarchicalDataSet(dataSet, columnList);
+        root = d3.hierarchy(hierarchyData);
+        root.x0 = 0;
+        root.y0 = 0;
+        root.children.forEach(d => {
+          if (d.children) {
+            d._children = d.children;
+            d.children = null;
+          }
+        });
+        update(root);
+      };
+
+    }
+  });
+  function collapseHierarchy() {
+    root = d3.hierarchy(hierarchyData);
+    root.children.forEach(collapseAll);
+    update(root);
+  }
+  function collapseAll(d) {
+      if (d.children) {
+        d.children.forEach(collapseAll);
+        d._children = d.children;
+        d.children = null;
+      }
+  }
+  function orderChange(originColumnList, selectedColumn) {
+    const delIndex = originColumnList.indexOf(selectedColumn);
+    originColumnList.splice(delIndex, 1);
+    originColumnList.splice(0, 0, selectedColumn);
+    return originColumnList;
+  }
+  
+  function findWithAttr(array, attr, value) {
+    for(var i = 0; i < array.length; i += 1) {
+        if(array[i][attr] === value) {
+            return i;
+        }
+    }
+    return -1;
+  }
+  function generateHierarchicalDataSet(dataSet, columnList) {
+    var hierarchyData = {
+      name: `Dataset by ${columnList[0]}`,
+      children: [
+      ]
+    };
+    for (var i = 0; i < dataSet.length; i++) {
+      var dataElement = dataSet[i];
+      var currentObj = hierarchyData;
+      for (var j = 0; j < columnList.length; j++) {
+
+          var eachVal = dataElement[columnList[j]];
+          var newName = `${eachVal} (${columnList[j]})`;
+
+          var childObj = j < columnList.length - 1 ? {
+            name: newName,
+            children: []
+          } : {
+            name: newName,
+            size: 1
+          };
+
+          var nextIndex = -1;
+
+          if (!currentObj.children)
+            currentObj.children = [childObj];
+
+          var foundIndex = findWithAttr( currentObj.children, 'name', `${eachVal} (${columnList[j]})`);
+
+          if (foundIndex > -1) nextIndex = foundIndex;
+          else {
+            nextIndex = currentObj.children.length;
+            currentObj.children.push(childObj);
+          }
+
+          currentObj = currentObj.children[nextIndex];
+        
+      }      
+    }
+    return hierarchyData;
+  }
+
+</script>
