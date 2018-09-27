@@ -21,15 +21,21 @@
     display: flex;
   }
   #toggleCollapse {
+    margin-top: 20px;
     margin-left: 40px;
     padding: 10px 20px;
-    background: rgba(49, 130, 189, 0.2);
-    font-size: 12px;
+    background: rgba(49, 130, 189, 0.4);
+    font-size: 14px;
     border: none;
     outline: none;
   }
+  .singleColumnContainer {
+    margin-left: 20px;
+    font-family: sans-serif; 
+  }
 </style>
 <link rel="stylesheet" type="text/css" href="dragula.css">
+<link rel="stylesheet" type="text/css" href="checkbox.css">
 <body>
   <input 
     id="toggleCollapse" 
@@ -194,9 +200,10 @@
            .selectAll('.singleColumnContainer')
            .data(propertyKeys)
               .append('label')
-              .attr('class', 'columns')
+              .attr('class', 'columnLabel')
               .text(function (val){ return val })
               .attr('id',function (d){ return `label#${d}` })
+              .attr('for', function (d){ return `check#${d}` });
       viewUpdate();
     }
   });
