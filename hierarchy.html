@@ -1,30 +1,56 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
-.node rect {
-  cursor: pointer;
-  fill: #fff;
-  fill-opacity: 0.5;
-  stroke: #3182bd;
-  stroke-width: 1.5px;
-}
-.node text {
-  font: 12px sans-serif;
-  pointer-events: none;
-}
-.link {
-  fill: none;
-  stroke: #9ecae1;
-  stroke-width: 1.5px;
-}
+  .node rect {
+    cursor: pointer;
+    fill: #fff;
+    fill-opacity: 0.5;
+    stroke: #3182bd;
+    stroke-width: 1.5px;
+  }
+  .node text {
+    font: 12px sans-serif;
+    pointer-events: none;
+  }
+  .link {
+    fill: none;
+    stroke: #9ecae1;
+    stroke-width: 1.5px;
+  }
+  .main-container {
+    display: flex;
+  }
+  #toggleCollapse {
+    margin-left: 40px;
+    padding: 10px 20px;
+    background: rgba(49, 130, 189, 0.2);
+    font-size: 12px;
+    border: none;
+    outline: none;
+  }
 </style>
+<link rel="stylesheet" type="text/css" href="dragula.css">
 <body>
-  <input name="collapseAll" 
-  type="button" 
-  value="Collapse All" 
-  onclick="collapseHierarchy()" />
+  <input 
+    id="toggleCollapse" 
+    type="button" 
+    value="Collapse All" 
+    onclick="toggleCollapse()" 
+  />
+  <div class="main-container">
+      <div class="wrapper panel panel-body">
+          <div id="columnsList" class="cont-dragula">
+          </div>
+      </div>
+      <div class="view-container">
+      </div>
+  </div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.js"></script>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
+  // ----- D3 View Configuration -----
   var margin = {top: 30, right: 20, bottom: 30, left: 20},
       width = 960,
       barHeight = 25,
@@ -35,7 +61,7 @@
   var diagonal = d3.linkHorizontal()
       .x(function(d) { return d.y; })
       .y(function(d) { return d.x; });
-  var svg = d3.select("body").append("svg")
+  var svg = d3.select(".view-container").append("svg")
       .attr("width", width) // + margin.left + margin.right)
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -135,43 +161,46 @@
   function color(d) {
     return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
   }
+  // ----- End D3 View Configuration -----
+
+
   var hierarchyData;
-  d3.json("http://localhost:8000/mockData.json", function(error, dataSet) {
+  var filteredColumns;
+  var dataSet;
+  var isCollapsed = true;
+
+  d3.json('http://localhost:8000/mockData.json', function(error, data) {
     var propertyKeys = [];
+    dataSet = data;
     if (dataSet.length > 0) {
       propertyKeys = Object.keys(dataSet[0]);
-      var select = d3.select('body')
-        .append('select')
-          .attr('class','propertyList')
-          .on('change',onchange)
-
-      var options = select
-        .selectAll('option')
-        .data(propertyKeys).enter()
-        .append('option')
-          .text(function (d) { return d; });
-          
-      onchange();
-      
-      function onchange() {
-        var selectedColumn = d3.select('.propertyList').property('value');
-        
-        var columnList = orderChange([].concat(propertyKeys), selectedColumn);
-        hierarchyData = generateHierarchicalDataSet(dataSet, columnList);
-        root = d3.hierarchy(hierarchyData);
-        root.x0 = 0;
-        root.y0 = 0;
-        root.children.forEach(d => {
-          if (d.children) {
-            d._children = d.children;
-            d.children = null;
-          }
-        });
-        update(root);
-      };
-
+      filteredColumns = propertyKeys;
+      var eachColumn = d3.select('#columnsList')
+           .selectAll('div')
+           .data(propertyKeys)
+           .enter()
+           .append('div')
+           .attr('class','singleColumnContainer')
+      var checkBox = d3
+           .selectAll('.singleColumnContainer')
+           .data(propertyKeys)
+              .append("input")
+              .attr('type','checkbox')
+              .attr('class','checkList')
+              .attr('checked', true)
+              .attr('id', function (d){ return `check#${d}` })
+              .on('change', columnsUpdated)
+      var columnLabel = d3
+           .selectAll('.singleColumnContainer')
+           .data(propertyKeys)
+              .append('label')
+              .attr('class', 'columns')
+              .text(function (val){ return val })
+              .attr('id',function (d){ return `label#${d}` })
+      viewUpdate();
     }
   });
+
   function collapseHierarchy() {
     root = d3.hierarchy(hierarchyData);
     root.children.forEach(collapseAll);
@@ -184,13 +213,11 @@
         d.children = null;
       }
   }
-  function orderChange(originColumnList, selectedColumn) {
-    const delIndex = originColumnList.indexOf(selectedColumn);
-    originColumnList.splice(delIndex, 1);
-    originColumnList.splice(0, 0, selectedColumn);
-    return originColumnList;
+  function toggleCollapse() {
+    isCollapsed = !isCollapsed;
+    document.getElementById("toggleCollapse").value = isCollapsed ? "Collapse All" : "UnCollapse All";
+    viewUpdate();
   }
-  
   function findWithAttr(array, attr, value) {
     for(var i = 0; i < array.length; i += 1) {
         if(array[i][attr] === value) {
@@ -201,7 +228,7 @@
   }
   function generateHierarchicalDataSet(dataSet, columnList) {
     var hierarchyData = {
-      name: `Dataset by ${columnList[0]}`,
+      name: `Hierarchical View`,
       children: [
       ]
     };
@@ -209,10 +236,8 @@
       var dataElement = dataSet[i];
       var currentObj = hierarchyData;
       for (var j = 0; j < columnList.length; j++) {
-
           var eachVal = dataElement[columnList[j]];
           var newName = `${eachVal} (${columnList[j]})`;
-
           var childObj = j < columnList.length - 1 ? {
             name: newName,
             children: []
@@ -220,25 +245,46 @@
             name: newName,
             size: 1
           };
-
           var nextIndex = -1;
-
           if (!currentObj.children)
             currentObj.children = [childObj];
-
           var foundIndex = findWithAttr( currentObj.children, 'name', `${eachVal} (${columnList[j]})`);
-
           if (foundIndex > -1) nextIndex = foundIndex;
           else {
             nextIndex = currentObj.children.length;
             currentObj.children.push(childObj);
           }
-
           currentObj = currentObj.children[nextIndex];
-        
       }      
     }
     return hierarchyData;
   }
+  // ----- Dragula Configuration -----
+  drake = dragula([columnsList]);
+  drake
+    .on('dragend', function (el, target, source, sibling) {
+      columnsUpdated();
+    });  
+  // ----- End Dragula Configuration ----- 
 
+  function columnsUpdated() {
+    filteredColumns = [];
+    var checkList = document.querySelectorAll('.checkList');
+    checkList.forEach(eachBox => {
+      if (eachBox.checked) {
+        var eachId = eachBox.id.split('#');
+        filteredColumns.push(eachId[1]);
+      }
+    });
+    viewUpdate();
+  }
+  function viewUpdate() {
+    hierarchyData = generateHierarchicalDataSet(dataSet, filteredColumns);
+    root = d3.hierarchy(hierarchyData);
+    root.x0 = 0;
+    root.y0 = 0;
+    if (isCollapsed) 
+      collapseHierarchy();
+    update(root);
+  };
 </script>
