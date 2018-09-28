@@ -1,0 +1,10 @@
+.main-container {
+  display: flex;
+}
+.view-container {
+  margin-left: 40px;
+}
+.singleColumnContainer {
+  margin-left: 20px;
+  font-family: sans-serif; 
+}
