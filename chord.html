@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Chord Diagram</title>	
+  <link rel="stylesheet" type="text/css" href="dragula.css">
+  <link rel="stylesheet" type="text/css" href="checkbox.css">
+  <link rel="stylesheet" type="text/css" href="custom.css">
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+</head>
+<body>
+  <div class="main-container">
+      <div class="wrapper panel panel-body">
+          <div id="columnsList" class="cont-dragula">
+          </div>
+      </div>
+      <div class="view-container">
+      	<div id="chart"></div>
+      </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.js"></script>
+	<script>
+    var hierarchyData;
+    var filteredColumns;
+    var dataSet;
+    d3.json("http://localhost:8000/mockData.json", function(error, data) {
+        if (error) throw error;
+        var propertyKeys = [];
+        dataSet = data;
+        if (dataSet.length > 0) {
+        propertyKeys = Object.keys(dataSet[0]);
+        filteredColumns = [];
+        var eachColumn = d3.select('#columnsList')
+            .selectAll('div')
+            .data(propertyKeys)
+            .enter()
+            .append('div')
+            .attr('class','singleColumnContainer')
+        var checkBox = d3
+            .selectAll('.singleColumnContainer')
+            .data(propertyKeys)
+                .append("input")
+                .attr('type','checkbox')
+                .attr('class','checkList')
+                .attr('id', function (d){ return `check#${d}` })
+                .on('change', columnsUpdated)
+        var columnLabel = d3
+            .selectAll('.singleColumnContainer')
+            .data(propertyKeys)
+                .append('label')
+                .attr('class', 'columnLabel')
+                .text(function (val){ return val })
+                .attr('id',function (d){ return `label#${d}` })
+                .attr('for', function (d){ return `check#${d}` });
+        }
+        viewUpdate();
+    });
+    function columnsUpdated() {
+        filteredColumns = [];
+        var checkList = document.querySelectorAll('.checkList');
+        checkList.forEach(eachBox => {
+            if (eachBox.checked) {
+                var eachId = eachBox.id.split('#');
+                filteredColumns.push(eachId[1]);
+            }
+        });
+        viewUpdate()
+    }
+    function viewUpdate() {
+        var groupSet = generateGroupset(dataSet, filteredColumns);
+        update(groupSet);
+    }
+    function generateGroupset(dataSet, columnList) {
+        var circularDataSet = [];
+        var categories = [];
+        var groupSet = [];
+        for (var i = 0; i < dataSet.length; i++) {
+          var dataElement = dataSet[i];
+          var category = dataElement[columnList[0]];
+          var subCategory = dataElement[columnList[columnList.length-1]];
+          var pos = categories.indexOf(category);
+
+          if (pos < 0) {
+            groupSet.push({
+              category: category,
+              subCategories: [subCategory]
+            });
+            categories.push(category);
+          } else {
+            var subCategories = groupSet[pos]['subCategories'];
+            var subPos = subCategories.indexOf(subCategory);
+            if (subPos < 0) subCategories.push(subCategory);
+          }
+        }
+        for (var i = 0; i < groupSet.length; i++) {
+          var dataElement = groupSet[i];
+          var category = dataElement['category'];
+          var subCategories = dataElement['subCategories'];
+          if (category === '') dataElement['category'] = `No ${columnList[0]}`;
+          for (var j = 0; j < subCategories.length; j++) {
+            if (subCategories[j] === '') subCategories[j] = `No ${columnList[columnList.length-1]}`;
+          }
+        }
+        return groupSet;
+    }
+    // ----- Dragula Configuration -----
+    drake = dragula([columnsList]);
+    drake
+    .on('dragend', function (el, target, source, sibling) {
+        columnsUpdated();
+    }); 
+		////////////////////////////////////////////////////////////
+		//////////////////////// Set-Up ////////////////////////////
+		////////////////////////////////////////////////////////////
+    var margin = { left: 90, top: 90, right: 90, bottom: 90 },
+      width =  1000 - margin.left - margin.right, // more flexibility: Math.min(window.innerWidth, 1000)
+      height =  1000 - margin.top - margin.bottom, // same: Math.min(window.innerWidth, 1000)
+      innerRadius = Math.min(width, height) * .39,
+      outerRadius = innerRadius * 1.1;
+
+    var svg = d3.select("#chart").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + (width/2) + "," + (height/2) + ")")
+
+    function update(groupSet) {
+      d3.select("svg").remove();
+
+      var totalSubCategories = [];
+      var groups = [];
+      var startIndex = 0;
+      for (var i = 0; i < groupSet.length; i++) {
+        totalSubCategories = totalSubCategories.concat(groupSet[i].subCategories);
+        var endIndex = startIndex + groupSet[i].subCategories.length - 1;
+        groups.push({
+          sIndex: startIndex,
+          eIndex: endIndex,
+          title: groupSet[i].category,
+          color: '#c69c6d'
+        })
+        startIndex = endIndex+1;
+      }
+
+      var names = totalSubCategories,
+        colors = ["#301E1E", "#083E77", "#342350", "#567235", "#8B161C", "#DF7C00"],
+        opacityDefault = 0.8;
+
+      var matrix = [];
+      for (var i = 0; i < totalSubCategories.length; i++) {
+        matrix[i] = [];
+      }
+
+      for (var i = 0; i < totalSubCategories.length; i++)
+        for (var j = 0; j < totalSubCategories.length; j++)
+          matrix[i][j] = 1;
+
+      ////////////////////////////////////////////////////////////
+      /////////// Create scale and layout functions //////////////
+      ////////////////////////////////////////////////////////////
+
+      var colors = d3.scaleOrdinal()
+          .domain(d3.range(names.length))
+        .range(colors);
+
+      var chord = d3.chord()
+        .padAngle(.15)
+        .sortChords(d3.descending)
+
+        var arc = d3.arc()
+        .innerRadius(innerRadius*1.01)
+        .outerRadius(outerRadius);
+
+      var path = d3.ribbon()
+      .radius(innerRadius);
+
+    ////////////////////////////////////////////////////////////
+    ////////////////////// Create SVG //////////////////////////
+    ////////////////////////////////////////////////////////////
+
+    svg = d3.select("#chart").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + (width/2) + "," + (height/2) + ")")
+      .datum(chord(matrix));
+
+    ////////////////////////////////////////////////////////////
+    ////////////////// Draw outer Arcs /////////////////////////
+    ////////////////////////////////////////////////////////////
+
+    var outerArcs = svg.selectAll("g.group")
+      .data(function(chords) { return chords.groups; })
+      .enter().append("g")
+      .attr("class", "group")
+      .on("mouseover", fade(.1))
+      .on("mouseout", fade(opacityDefault))
+
+      // text popups
+      .on("click", mouseoverChord)
+      .on("mouseout", mouseoutChord);
+
+    ////////////////////////////////////////////////////////////
+    ////////////////////// Append names ////////////////////////
+    ////////////////////////////////////////////////////////////
+
+    //Append the label names INSIDE outside
+    outerArcs.append("path")
+      .style("fill", function(d) { return colors(d.index); })
+      .attr("id", function(d, i) { return "group" + d.index; })
+      .attr("d", arc);
+
+    outerArcs.append("text")
+            .attr("x", 6)
+            .attr("dx", 6)
+            .attr("dy", 18)
+            .style("font-size", "10px")
+            
+          .append("textPath")
+            .attr("href", function(d) { return "#group" + d.index;})
+            .text(function(chords, i){return names[i];})
+            .style("fill", "white")
+    ////////////////////////////////////////////////////////////
+    ////////////////// Draw inner chords ///////////////////////
+    ////////////////////////////////////////////////////////////
+
+    svg.selectAll("path.chord")
+      .data(function(chords) { return chords; })
+      .enter().append("path")
+      .attr("class", "chord")
+      .style("fill", function(d) { return colors(d.source.index); })
+      .style("opacity", opacityDefault)
+      .attr("d", path);
+    
+    ////////////////////////////////////////////////////////////
+    //////// Draw Super Categories - By Faraz Shuja ////////////
+    ////////////////////////////////////////////////////////////
+    
+    //define grouping with colors
+    var cD = chord(matrix).groups;
+      
+    //draw arcs
+    for(var i=0;i<groups.length;i++) {
+      var __g = groups[i];
+      var arc1 = d3.arc()
+        .innerRadius(innerRadius*1.11)
+        .outerRadius(outerRadius*1.1)
+        .startAngle(cD[__g.sIndex].startAngle) 
+        .endAngle(cD[__g.eIndex].endAngle) 
+
+      svg.append("path").attr("d", arc1).attr('fill', __g.color).attr('id', 'groupId' + i);
+      
+      // Add a text label.
+      var text = svg.append("text")
+        .attr("x", 20)
+        .attr("dy", 20)
+        .style("font-size", "16px");
+
+      text.append("textPath")
+        .attr("stroke","#fff")
+        .attr('fill', '#fff')
+        .attr("xlink:href","#groupId" + i)
+        .text(__g.title);
+    }
+
+    ////////////////////////////////////////////////////////////
+    ////////////////// Extra Functions /////////////////////////
+    ////////////////////////////////////////////////////////////
+
+    //Returns an event handler for fading a given chord group.
+    function fade(opacity) {
+      return function(d,i) {
+        svg.selectAll("path.chord")
+            .filter(function(d) { return d.source.index != i && d.target.index != i; })
+        .transition()
+            .style("opacity", opacity);
+      };
+    }//fade
+
+      //Highlight hovered over chord
+    function mouseoverChord(d,i) {
+
+      //Decrease opacity to all
+      svg.selectAll("path.chord")
+        .transition()
+        .style("opacity", 0.1);
+      //Show hovered over chord with full opacity
+      d3.select(this)
+        .transition()
+            .style("opacity", 1);
+
+
+    }
+    //Bring all chords back to default opacity
+    function mouseoutChord(d) {
+      //Hide the tooltip
+      $('.popover').each(function() {
+        $(this).remove();
+      })
+      //Set opacity back to default for all
+      svg.selectAll("path.chord")
+        .transition()
+        .style("opacity", opacityDefault);
+    }      //function mouseoutChord
+
+    function wrap() {
+      var self = d3.select(this),
+          textLength = self.node().getComputedTextLength(),
+          text = self.text();
+      while (textLength > (width - 2 * padding) && text.length > 0) {
+          text = text.slice(0, -1);
+          self.text(text + '...');
+          textLength = self.node().getComputedTextLength();
+      }
+    } 
+  }
+</script>
+</body>
+</html>
