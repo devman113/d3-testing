@@ -24,12 +24,12 @@
     var hierarchyData;
     var filteredColumns;
     var dataSet;
-    d3.json("http://localhost:8000/mockData.json", function(error, data) {
+    d3.json("http://localhost:8000/mockDataNew.json", function(error, data) {
         if (error) throw error;
         var propertyKeys = [];
         dataSet = data;
         if (dataSet.length > 0) {
-        propertyKeys = Object.keys(dataSet[0]);
+        propertyKeys = Object.keys(dataSet[0]['columns']);
         filteredColumns = [];
         var eachColumn = d3.select('#columnsList')
             .selectAll('div')
@@ -71,37 +71,56 @@
         var groupSet = generateGroupset(dataSet, filteredColumns);
         update(groupSet);
     }
+    function getRandomColor() {
+      var letters = '0123456789ABCDEF';
+      var color = '#';
+      for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
     function generateGroupset(dataSet, columnList) {
         var circularDataSet = [];
         var categories = [];
         var groupSet = [];
         for (var i = 0; i < dataSet.length; i++) {
-          var dataElement = dataSet[i];
+          var dataElement = dataSet[i]['columns'];
+          var id = dataSet[i]['id'];
           var category = dataElement[columnList[0]];
           var subCategory = dataElement[columnList[columnList.length-1]];
+          var associations = dataSet[i]['associations'];
           var pos = categories.indexOf(category);
 
           if (pos < 0) {
             groupSet.push({
+              ids: [id],
+              associationsList: [associations],
               category: category,
               subCategories: [subCategory]
             });
             categories.push(category);
           } else {
             var subCategories = groupSet[pos]['subCategories'];
+            var ids = groupSet[pos]['ids'];
+            var associationsList = groupSet[pos]['associationsList'];
             var subPos = subCategories.indexOf(subCategory);
-            if (subPos < 0) subCategories.push(subCategory);
+            if (subPos < 0) {
+              subCategories.push(subCategory);
+              ids.push(id);
+              associationsList.push(associations);
+            } 
           }
         }
         for (var i = 0; i < groupSet.length; i++) {
           var dataElement = groupSet[i];
           var category = dataElement['category'];
           var subCategories = dataElement['subCategories'];
-          if (category === '') dataElement['category'] = `No ${columnList[0]}`;
+          dataElement['category'] = category === '' ? `No ${columnList[0]}` : dataElement['category'];
           for (var j = 0; j < subCategories.length; j++) {
-            if (subCategories[j] === '') subCategories[j] = `No ${columnList[columnList.length-1]}`;
+            subCategories[j] = subCategories[j] === '' ? `No ${columnList[columnList.length-1]}` : subCategories[j];
           }
         }
+        console.log(groupSet);
         return groupSet;
     }
     // ----- Dragula Configuration -----
@@ -129,16 +148,20 @@
       d3.select("svg").remove();
 
       var totalSubCategories = [];
+      var totalIds = [];
+      var totalAssociations = [];
       var groups = [];
       var startIndex = 0;
       for (var i = 0; i < groupSet.length; i++) {
         totalSubCategories = totalSubCategories.concat(groupSet[i].subCategories);
+        totalIds = totalIds.concat(groupSet[i].ids);
+        totalAssociations = totalAssociations.concat(groupSet[i].associationsList);
         var endIndex = startIndex + groupSet[i].subCategories.length - 1;
         groups.push({
           sIndex: startIndex,
           eIndex: endIndex,
           title: groupSet[i].category,
-          color: '#c69c6d'
+          color: getRandomColor()
         })
         startIndex = endIndex+1;
       }
@@ -152,9 +175,15 @@
         matrix[i] = [];
       }
 
-      for (var i = 0; i < totalSubCategories.length; i++)
-        for (var j = 0; j < totalSubCategories.length; j++)
-          matrix[i][j] = 1;
+      for (var i = 0; i < totalAssociations.length; i++) {
+        var eachAssociationList = totalAssociations[i];
+        for (var j = 0; j < totalIds.length; j++) {
+          if (eachAssociationList.indexOf(totalIds[j]) > -1)
+            matrix[i][j] = 1;
+          else
+            matrix[i][j] = 0;
+        }
+      }
 
       ////////////////////////////////////////////////////////////
       /////////// Create scale and layout functions //////////////
@@ -165,7 +194,7 @@
         .range(colors);
 
       var chord = d3.chord()
-        .padAngle(.15)
+        .padAngle(.03)
         .sortChords(d3.descending)
 
         var arc = d3.arc()
@@ -215,7 +244,7 @@
             .attr("x", 6)
             .attr("dx", 6)
             .attr("dy", 18)
-            .style("font-size", "10px")
+            .style("font-size", "12px")
             
           .append("textPath")
             .attr("href", function(d) { return "#group" + d.index;})
@@ -253,9 +282,9 @@
       
       // Add a text label.
       var text = svg.append("text")
-        .attr("x", 20)
+        .attr("x", 10)
         .attr("dy", 20)
-        .style("font-size", "16px");
+        .style("font-size", "15px");
 
       text.append("textPath")
         .attr("stroke","#fff")
