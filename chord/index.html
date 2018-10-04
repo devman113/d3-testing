@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<link rel="stylesheet" type="text/css" href="../css/dragula.css">
+		<link rel="stylesheet" type="text/css" href="../css/checkbox.css">
+		<link rel="stylesheet" type="text/css" href="../css/custom.css">
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.js"></script>
+		<script src="d3.layout.chord.sort.js"></script>
+		<style>
+			body {
+				font-size: 14px;
+				font-family: 'Lato', sans-serif;
+				text-align: left;
+				color: #757575;
+				cursor: default;
+			}
+			
+			.title {
+				margin-top: 20px;
+				margin-bottom: 10px;
+				margin-left: 20px;
+				font-size:32px;
+				font-family: 'Oswald', sans-serif;
+				color: #2B2B2B;
+			}
+			
+			.texts {
+				margin-left: 20px;
+				margin-right: 20px;
+				line-height: 140%;
+			}
+			
+			.credit {
+				color: #9E9E9E;
+				font-size: 10px;
+				margin-bottom: 0.5em;
+			}
+			
+			.notes {
+				color: #9E9E9E;
+				font-size: 10px;
+			}
+			
+			.popover {
+				pointer-events: none;
+			}
+			
+			#chart{
+				font-size: 16px;
+				font-family: 'Bangers', sans-serif;
+				text-align: center;
+				fill: #2B2B2B;
+			}
+			
+			@media (min-width: 600px) {
+				#chart{
+					font-size: 20px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="main-container">
+			<div class="wrapper panel panel-body">
+				<div id="columnsList" class="cont-dragula">
+				</div>
+			</div>
+			<div class="view-container">
+				<div id="chart"></div>
+			</div>
+		</div>
+		<script src="script.js"></script>
+		<script>
+			var hierarchyData;
+			var filteredColumns;
+			var dataSet;
+			d3.json("http://localhost:8000/data/mockDataNew.json", function(error, data) {
+				if (error) throw error;
+				var propertyKeys = [];
+				dataSet = data;
+				if (dataSet.length > 0) {
+				propertyKeys = Object.keys(dataSet[0]['columns']);
+				filteredColumns = [];
+				var eachColumn = d3.select('#columnsList')
+					.selectAll('div')
+					.data(propertyKeys)
+					.enter()
+					.append('div')
+					.attr('class','singleColumnContainer')
+				var checkBox = d3
+					.selectAll('.singleColumnContainer')
+					.data(propertyKeys)
+						.append("input")
+						.attr('type','checkbox')
+						.attr('class','checkList')
+						.attr('id', function (d){ return `check#${d}` })
+						.on('change', columnsUpdated)
+				var columnLabel = d3
+					.selectAll('.singleColumnContainer')
+					.data(propertyKeys)
+						.append('label')
+						.attr('class', 'columnLabel')
+						.text(function (val){ return val })
+						.attr('id',function (d){ return `label#${d}` })
+						.attr('for', function (d){ return `check#${d}` });
+				}
+				viewUpdate();
+			});
+			function columnsUpdated() {
+				filteredColumns = [];
+				var checkList = document.querySelectorAll('.checkList');
+				checkList.forEach(eachBox => {
+					if (eachBox.checked) {
+						var eachId = eachBox.id.split('#');
+						filteredColumns.push(eachId[1]);
+					}
+				});
+				viewUpdate()
+			}
+			function viewUpdate() {
+				var groupSet = generateGroupset(dataSet, filteredColumns);
+				update(groupSet);
+			}
+			function getRandomColor() {
+			var letters = '0123456789ABCDEF';
+			var color = '#';
+			for (var i = 0; i < 6; i++) {
+				color += letters[Math.floor(Math.random() * 16)];
+			}
+			return color;
+			}
+			function generateGroupset(dataSet, columnList) {
+				var circularDataSet = [];
+				var categories = [];
+				var groupSet = [];
+				for (var i = 0; i < dataSet.length; i++) {
+				var dataElement = dataSet[i]['columns'];
+				var id = dataSet[i]['id'];
+				var category = dataElement[columnList[0]];
+				var subCategory = dataElement[columnList[columnList.length-1]];
+				var associations = dataSet[i]['associations'];
+				var pos = categories.indexOf(category);
+
+				if (pos < 0) {
+					groupSet.push({
+					ids: [id],
+					associationsList: [associations],
+					category: category,
+					subCategories: [subCategory]
+					});
+					categories.push(category);
+				} else {
+					var subCategories = groupSet[pos]['subCategories'];
+					var ids = groupSet[pos]['ids'];
+					var associationsList = groupSet[pos]['associationsList'];
+					var subPos = subCategories.indexOf(subCategory);
+					if (subPos < 0) {
+					subCategories.push(subCategory);
+					ids.push(id);
+					associationsList.push(associations);
+					} 
+				}
+				}
+				for (var i = 0; i < groupSet.length; i++) {
+				var dataElement = groupSet[i];
+				var category = dataElement['category'];
+				var subCategories = dataElement['subCategories'];
+				dataElement['category'] = category === '' ? `No ${columnList[0]}` : dataElement['category'];
+				for (var j = 0; j < subCategories.length; j++) {
+					subCategories[j] = subCategories[j] === '' ? `No ${columnList[columnList.length-1]}` : subCategories[j];
+				}
+				}
+				console.log(groupSet);
+				return groupSet;
+			}
+			// ----- Dragula Configuration -----
+			drake = dragula([columnsList]);
+			drake
+			.on('dragend', function (el, target, source, sibling) {
+				columnsUpdated();
+			});
+		</script>
+  </body>
+</html>
