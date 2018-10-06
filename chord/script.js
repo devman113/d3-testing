@@ -5,6 +5,8 @@
 function update(groupSet) {
 	d3.select("svg").remove();
 
+	var colors = ["#301E1E", "#083E77", "#342350", "#567235", "#8B161C", "#DF7C00"];
+	var opacityDefault = 0.8;
 	var totalSubCategories = [];
 	var totalIds = [];
 	var totalAssociations = [];
@@ -19,14 +21,12 @@ function update(groupSet) {
 		sIndex: startIndex,
 		eIndex: endIndex,
 		title: groupSet[i].category,
-		color: getRandomColor()
+		color: colors[i%6]
 	  })
 	  startIndex = endIndex+1;
 	}
 
-	var Names = totalSubCategories,
-	  colors = ["#301E1E", "#083E77", "#342350", "#567235", "#8B161C", "#DF7C00"],
-	  opacityDefault = 0.8;
+	var Names = totalSubCategories;
 
 	var matrix = [];
 	for (var i = 0; i < totalSubCategories.length; i++) {
@@ -67,7 +67,6 @@ function update(groupSet) {
 	// 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0],
 	// ];
 
-	console.log(Names, matrix);
 	////////////////////////////////////////////////////////////
 	/////////// Create scale and layout functions //////////////
 	////////////////////////////////////////////////////////////
@@ -152,7 +151,8 @@ function update(groupSet) {
 			
 			//If the end angle lies beyond a quarter of a circle (90 degrees or pi/2) 
 			//flip the end and start position
-			if (d.endAngle > 90*Math.PI/180 & d.startAngle < 270*Math.PI/180) {
+			var angle = (d.endAngle + d.startAngle) / 2;
+			if (angle > 90*Math.PI/180 & angle < 270*Math.PI/180) {
 				var startLoc 	= /M(.*?)A/,		//Everything between the first capital M and first capital A
 					middleLoc 	= /A(.*?)0 0 1/,	//Everything between the first capital A and 0 0 1
 					endLoc 		= /0 0 1 (.*?)$/;	//Everything between the first 0 0 1 and the end of the string (denoted by $)
@@ -179,29 +179,30 @@ function update(groupSet) {
 	////////////////////////////////////////////////////////////
 
 	//Append the label names on the outside
-	function wrap() {
-		var self = d3.select(this),
-		textLength = self.node().getComputedTextLength(),
-		text = self.text();
-		var w = self.node().getBoundingClientRect().width,
-			h = self.node().getBoundingClientRect().height;
-		while (textLength > Math.sqrt(w*w+h*h)*.8 && text.length > 0) {
-		text = text.slice(0, -1);
-		self.text(text + '...');
-		textLength = self.node().getComputedTextLength();
+	function wrap(startAngle, endAngle, title) {
+		var arcLength = (endAngle - startAngle)*innerRadius;
+		var charLength = 9;
+		if (arcLength/charLength < title.length) {
+			return title.substring(0, arcLength/charLength) + '...';
 		}
+		return title;
+		
 	}
 
 	outerArcs.append("text")
 		.attr("class", "titles")
-		.attr("dy", function(d,i) { return (d.endAngle > 90*Math.PI/180 & d.startAngle < 270*Math.PI/180 ? -8 : 16); })
+		.attr("x", 5)
+		.attr("dy", function(d,i) {
+			var angle = (d.endAngle + d.startAngle) / 2;
+			return (angle > 90*Math.PI/180 & angle < 270*Math.PI/180 ? -8 : 16); 
+		})
 		.style("font-size", "14px")
 	.append("textPath")
 		.attr('fill', '#fff')
 		.attr("startOffset","50%")
 		.style("text-anchor","middle")
 		.attr("xlink:href",function(d,i){return "#arc"+i;})
-		.text(function(d,i){ return Names[i]; }).each(wrap);
+		.text(function(d,i){ return wrap(d.startAngle, d.endAngle, Names[i]); });
 		
 	////////////////////////////////////////////////////////////
 	////////////////// Draw inner chords ///////////////////////
@@ -218,11 +219,10 @@ function update(groupSet) {
 		.on("mouseout", mouseoutChord);
 
 	var chord1 = d3.chord()
-        .padAngle(.01)
-		.sortChords(d3.descending);
+		.padAngle(.01)
+		.sortChords(d3.descending) //which chord should be shown on top when chords cross. Now the biggest chord is at the bottom
 		
 	var cD = chord1(matrix).groups;
-      
     //draw arcs
     for(var i=0;i<groups.length;i++) {
       var __g = groups[i];
@@ -230,20 +230,64 @@ function update(groupSet) {
         .innerRadius(innerRadius*1.11)
         .outerRadius(outerRadius*1.1)
         .startAngle(cD[__g.sIndex].startAngle) 
-        .endAngle(cD[__g.eIndex].endAngle) 
+        .endAngle(cD[__g.eIndex].endAngle);
 
-      svg.append("path").attr("d", arc1).attr('fill', __g.color).attr('id', 'groupId' + i);
+	//   svg.append("path").attr("d", arc1).attr('fill', __g.color).attr('id', 'groupId' + i);
+	svg.append("path")
+		.style("fill",  __g.color)
+		.attr("d", arc1)
+		.each(function(d,ii) {
+			//Search pattern for everything between the start and the first capital L
+			var firstArcSection = /(^.+?)L/; 	
+
+			//Grab everything up to the first Line statement
+			var newArc = firstArcSection.exec( d3.select(this).attr("d") )[1];
+			//Replace all the comma's so that IE can handle it
+			newArc = newArc.replace(/,/g , " ");
+			//If the end angle lies beyond a quarter of a circle (90 degrees or pi/2) 
+			//flip the end and start position
+			var angle = (cD[__g.eIndex].endAngle + cD[__g.sIndex].startAngle) / 2
+			if (angle > 90*Math.PI/180 & angle < 270*Math.PI/180) {
+				var startLoc 	= /M(.*?)A/,		//Everything between the first capital M and first capital A
+					middleLoc 	= /A(.*?)0 0 1/,	//Everything between the first capital A and 0 0 1
+					endLoc 		= /0 0 1 (.*?)$/;	//Everything between the first 0 0 1 and the end of the string (denoted by $)
+				//Flip the direction of the arc by switching the start en end point (and sweep flag)
+				//of those elements that are below the horizontal line
+				var newStart = endLoc.exec( newArc ); 
+				var newEnd = startLoc.exec( newArc );
+				var middleSec = middleLoc.exec( newArc );
+				//Build up the new arc notation, set the sweep-flag to 0
+				if (newStart && newEnd && middleSec)
+				newArc = "M" + newStart[1] + "A" + middleSec[1] + "0 0 0 " + newEnd[1];
+			}//if
+			
+			//Create a new invisible arc that the text can flow along
+			svg.append("path")
+				.attr("class", "hiddenArcs")
+				.attr("id", "arcO"+i)
+				.attr("d", newArc)
+				.style("fill", "none");
+		});
       
       // Add a text label.
       var text = svg.append("text")
-        .attr("x", 10)
-        .attr("dy", 20)
+		.attr("x", 5)
+		.attr("dy", function(d,i) { 
+			var angle = (cD[__g.eIndex].endAngle + cD[__g.sIndex].startAngle) / 2;
+			var angleDiff = (cD[__g.eIndex].endAngle - cD[__g.sIndex].startAngle);
+			if (angleDiff > Math.PI) return 18;
+			var offset = (angle > 90*Math.PI/180 & angle < 270*Math.PI/180 ? -8 : 18); 
+			return offset;
+		})
         .style("font-size", "15px");
 
-      text.append("textPath")
-        .attr('fill', '#fff')
-        .attr("xlink:href","#groupId" + i)
-        .text(__g.title).each(wrap);
+	  text.append("textPath")
+		.attr('fill', '#fff')
+		.attr("startOffset","50%")
+		.style("text-anchor","middle")
+        .attr("xlink:href","#arcO" + i)
+		.text(function(d,i){ return wrap(cD[__g.sIndex].startAngle, cD[__g.eIndex].endAngle, __g.title); });
+
     }
 
 	////////////////////////////////////////////////////////////
