@@ -164,15 +164,14 @@
 				}
 				}
 				for (var i = 0; i < groupSet.length; i++) {
-				var dataElement = groupSet[i];
-				var category = dataElement['category'];
-				var subCategories = dataElement['subCategories'];
-				dataElement['category'] = category === '' ? `No ${columnList[0]}` : dataElement['category'];
-				for (var j = 0; j < subCategories.length; j++) {
-					subCategories[j] = subCategories[j] === '' ? `No ${columnList[columnList.length-1]}` : subCategories[j];
+					var dataElement = groupSet[i];
+					var category = dataElement['category'];
+					var subCategories = dataElement['subCategories'];
+					dataElement['category'] = category === '' ? `No ${columnList[0]}` : dataElement['category'];
+					for (var j = 0; j < subCategories.length; j++) {
+						subCategories[j] = subCategories[j] === '' ? `No ${columnList[columnList.length-1]}` : subCategories[j];
+					}
 				}
-				}
-				console.log(groupSet);
 				return groupSet;
 			}
 			// ----- Dragula Configuration -----
