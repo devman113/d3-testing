@@ -4,16 +4,18 @@
 
 function update(groupSet) {
 	d3.select("svg").remove();
-
 	var colors = ["#301E1E", "#083E77", "#342350", "#567235", "#8B161C", "#DF7C00"];
 	var opacityDefault = 0.8;
 	var totalSubCategories = [];
+	var totalCategories = [];
 	var totalIds = [];
 	var totalAssociations = [];
 	var groups = [];
 	var startIndex = 0;
 	for (var i = 0; i < groupSet.length; i++) {
 	  totalSubCategories = totalSubCategories.concat(groupSet[i].subCategories);
+	  for (var j = 0; j < groupSet[i].subCategories.length; j++)
+	  	totalCategories.push(groupSet[i].category);
 	  totalIds = totalIds.concat(groupSet[i].ids);
 	  totalAssociations = totalAssociations.concat(groupSet[i].associationsList);
 	  var endIndex = startIndex + groupSet[i].subCategories.length - 1;
@@ -44,9 +46,9 @@ function update(groupSet) {
 	  }
 	}
 
-	var margin = {left:20, top:20, right:20, bottom:20},
-		width = Math.min(window.innerWidth, 700) - margin.left - margin.right,
-		height = Math.min(window.innerWidth, 700) - margin.top - margin.bottom,
+	var margin = {left: 100, top: 100, right: 200, bottom: 200},
+		width = Math.min(window.innerWidth, 1000) - margin.left - margin.right,
+		height = Math.min(window.innerWidth, 1000) - margin.top - margin.bottom,
 		innerRadius = Math.min(width, height) * .39,
 		outerRadius = innerRadius * 1.1;
 		
@@ -87,6 +89,11 @@ function update(groupSet) {
 
 	var path = d3.ribbon()
 		.radius(innerRadius);
+
+	var tooltip = d3.select("#chart")
+		.append("div")
+		.attr("class", "tooltip")
+		.text("");
 		
 	////////////////////////////////////////////////////////////
 	////////////////////// Create SVG //////////////////////////
@@ -95,6 +102,7 @@ function update(groupSet) {
 	var svg = d3.select("#chart").append("svg")
 		.attr("width", width + margin.left + margin.right)
 		.attr("height", height + margin.top + margin.bottom)
+		.attr("id", "svg_board")
 		.append("g")
 		.attr("transform", "translate(" + (width/2 + margin.left) + "," + (height/2 + margin.top) + ")");
 
@@ -134,8 +142,8 @@ function update(groupSet) {
 		.data(chord.groups)
 		.enter().append("g")
 		.attr("class", "group")
-		.on("mouseover", fade(.1))
-		.on("mouseout", fade(opacityDefault));
+		.on("mouseover", arcMouseover)
+		.on("mouseout", arcMouseout);
 
 	outerArcs.append("path")
 		.style("fill", function(d) { return colors(d.index); })
@@ -230,7 +238,7 @@ function update(groupSet) {
         .innerRadius(innerRadius*1.11)
         .outerRadius(outerRadius*1.1)
         .startAngle(cD[__g.sIndex].startAngle) 
-        .endAngle(cD[__g.eIndex].endAngle);
+		.endAngle(cD[__g.eIndex].endAngle);
 
 	//   svg.append("path").attr("d", arc1).attr('fill', __g.color).attr('id', 'groupId' + i);
 	svg.append("path")
@@ -288,20 +296,24 @@ function update(groupSet) {
         .attr("xlink:href","#arcO" + i)
 		.text(function(d,i){ return wrap(cD[__g.sIndex].startAngle, cD[__g.eIndex].endAngle, __g.title); });
 
-    }
 
+	}
+	svg.selectAll("g.group")
+	.data(cD)
+	.enter().append("g")
+	.attr("class", "group")
+	.on("mouseover", arcMouseover)
+	.on("mouseout", arcMouseout);
 	////////////////////////////////////////////////////////////
 	////////////////// Extra Functions /////////////////////////
 	////////////////////////////////////////////////////////////
 
 	//Returns an event handler for fading a given chord group.
-	function fade(opacity) {
-	return function(d,i) {
+	function fade(opacity, index) {
 		svg.selectAll("path.chord")
-			.filter(function(d) { return d.source.index !== i && d.target.index !== i; })
+			.filter(function(d, i) { return d.source.index !== index && d.target.index !== index; })
 			.transition()
 			.style("opacity", opacity);
-	};
 	}//fade
 
 	//Highlight hovered over chord
@@ -324,4 +336,47 @@ function update(groupSet) {
 			.transition()
 			.style("opacity", opacityDefault);
 	}//function mouseoutChord
+	function arcMouseover(d) {
+		fade(.1, d.index);
+		console.log(d);
+		var x = d3.event.pageX - document.getElementById("svg_board").getBoundingClientRect().x + 10
+		var y = d3.event.pageY - document.getElementById("svg_board").getBoundingClientRect().y + 10
+		var width = document.getElementById("svg_board").getBoundingClientRect().width;
+		var height = document.getElementById("svg_board").getBoundingClientRect().height;
+		var offsetX = 0, offsetY = 0;
+		if (x < width/2) {
+			offsetX = -100;
+			if (y < height/2) offsetY = -100;
+		}
+		if (x > width/2) {
+			offsetX = 50;
+			if (y < height/2) offsetY = -100;
+		}
+
+		tooltip.style("margin-left", x+offsetX+"px");
+		tooltip.style("margin-top", y+offsetY+"px");
+		tooltip.style("visibility", "visible");
+		tooltip.html(getTooltipcontent(d.index));
+	}
+	function arcMouseout(d) {
+		fade(opacityDefault, d.index);
+		tooltip.style("visibility", "hidden");
+	}
+	function getTooltipcontent(index) {
+		var content = '';
+		var singleLine = function (val, title) {
+			var content = "<div style='display: table-row;'>";
+			content += "<span style='display: table-cell;'>"+title+": </span><br />";
+			content += "<span style='display: table-cell;'>"+val+"</span><br />";
+			content += "</div>"
+			return content;
+		}
+		for (var i=0; i<totalSubCategories.length; i++) {
+			if (i === index) {
+				if (totalCategories[i])	content +=  singleLine(totalCategories[i], "Category");
+				if (totalSubCategories[i])	content += singleLine(totalSubCategories[i], "Subitem");
+			}
+		}
+		return content;
+	}
 }
