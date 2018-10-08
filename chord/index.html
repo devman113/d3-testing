@@ -165,9 +165,7 @@
 			}
 			function viewUpdate() {
 				var groupSet = generateGroupset(dataSet, selectedCategories);
-				console.log(groupSet)
-				if (groupSet.length > 0)
-					update(groupSet);
+				update(groupSet, selectedCategories);
 			}
 			function generateGroupset(dataSet, columnList) {
 				if (columnList.length === 0) return [];

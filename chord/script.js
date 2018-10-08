@@ -2,10 +2,11 @@
 //////////////////////// Set-Up ////////////////////////////
 ////////////////////////////////////////////////////////////
 
-function update(groupSet) {
+function update(groupSet, selectedCategories) {
 	d3.select("svg").remove();
 	var colors = ["#301E1E", "#083E77", "#342350", "#567235", "#8B161C", "#DF7C00"];
 	var opacityDefault = 0.8;
+	var groupCount = selectedCategories.length;
 	var totalSubCategories = [];
 	var totalCategories = [];
 	var totalIds = [];
@@ -13,21 +14,21 @@ function update(groupSet) {
 	var groups = [];
 	var startIndex = 0;
 	for (var i = 0; i < groupSet.length; i++) {
-	  totalSubCategories = totalSubCategories.concat(groupSet[i].subCategories);
-	  for (var j = 0; j < groupSet[i].subCategories.length; j++)
-		  totalCategories.push(groupSet[i].category);
+		totalSubCategories = totalSubCategories.concat(groupSet[i].subCategories);
+		for (var j = 0; j < groupSet[i].subCategories.length; j++)
+			totalCategories.push(groupSet[i].category);
 		  
 		totalIds = totalIds.concat(groupSet[i].ids);
 		totalAssociations = totalAssociations.concat(groupSet[i].associationsList);
 
-	  var endIndex = startIndex + groupSet[i].subCategories.length - 1;
-	  groups.push({
-		sIndex: startIndex,
-		eIndex: endIndex,
-		title: groupSet[i].category,
-		color: colors[i%6]
-	  })
-	  startIndex = endIndex+1;
+		var endIndex = startIndex + groupSet[i].subCategories.length - 1;
+		groups.push({
+			sIndex: startIndex,
+			eIndex: endIndex,
+			title: groupSet[i].category,
+			color: colors[i%6]
+		})
+		startIndex = endIndex+1;
 	}
 
 	var Names = totalSubCategories;
@@ -210,84 +211,87 @@ function update(groupSet) {
 		.on("mouseover", mouseoverChord)
 		.on("mouseout", mouseoutChord);
 
-	var chord1 = d3.chord()
+	if (groupCount > 1) {
+		var chord1 = d3.chord()
 		.padAngle(.01)
 		.sortChords(d3.descending) //which chord should be shown on top when chords cross. Now the biggest chord is at the bottom
 		
-	var cD = chord1(matrix).groups;
-    //draw arcs
-    for(var i=0;i<groups.length;i++) {
-      var __g = groups[i];
-      var arc1 = d3.arc()
-        .innerRadius(innerRadius*1.11)
-        .outerRadius(outerRadius*1.1)
-        .startAngle(cD[__g.sIndex].startAngle) 
-		.endAngle(cD[__g.eIndex].endAngle);
+		var cD = chord1(matrix).groups;
+		//draw arcs
+		for(var i=0;i<groups.length;i++) {
+		var __g = groups[i];
+		var arc1 = d3.arc()
+			.innerRadius(innerRadius*1.11)
+			.outerRadius(outerRadius*1.1)
+			.startAngle(cD[__g.sIndex].startAngle) 
+			.endAngle(cD[__g.eIndex].endAngle);
 
-	//   svg.append("path").attr("d", arc1).attr('fill', __g.color).attr('id', 'groupId' + i);
-	svg.append("path")
-		.style("fill",  __g.color)
-		.attr("d", arc1)
-		.each(function(d,ii) {
-			//Search pattern for everything between the start and the first capital L
-			var firstArcSection = /(^.+?)L/; 	
+		//   svg.append("path").attr("d", arc1).attr('fill', __g.color).attr('id', 'groupId' + i);
+		svg.append("path")
+			.style("fill",  __g.color)
+			.attr("d", arc1)
+			.each(function(d,ii) {
+				//Search pattern for everything between the start and the first capital L
+				var firstArcSection = /(^.+?)L/; 	
 
-			//Grab everything up to the first Line statement
-			var newArc = firstArcSection.exec( d3.select(this).attr("d") )[1];
-			//Replace all the comma's so that IE can handle it
-			newArc = newArc.replace(/,/g , " ");
-			//If the end angle lies beyond a quarter of a circle (90 degrees or pi/2) 
-			//flip the end and start position
-			var angle = (cD[__g.eIndex].endAngle + cD[__g.sIndex].startAngle) / 2
-			if (angle > 90*Math.PI/180 & angle < 270*Math.PI/180) {
-				var startLoc 	= /M(.*?)A/,		//Everything between the first capital M and first capital A
-					middleLoc 	= /A(.*?)0 0 1/,	//Everything between the first capital A and 0 0 1
-					endLoc 		= /0 0 1 (.*?)$/;	//Everything between the first 0 0 1 and the end of the string (denoted by $)
-				//Flip the direction of the arc by switching the start en end point (and sweep flag)
-				//of those elements that are below the horizontal line
-				var newStart = endLoc.exec( newArc ); 
-				var newEnd = startLoc.exec( newArc );
-				var middleSec = middleLoc.exec( newArc );
-				//Build up the new arc notation, set the sweep-flag to 0
-				if (newStart && newEnd && middleSec)
-				newArc = "M" + newStart[1] + "A" + middleSec[1] + "0 0 0 " + newEnd[1];
-			}//if
-			
-			//Create a new invisible arc that the text can flow along
-			svg.append("path")
-				.attr("class", "hiddenArcs")
-				.attr("id", "arcO"+i)
-				.attr("d", newArc)
-				.style("fill", "none");
-		});
-      
-      // Add a text label.
-      var text = svg.append("text")
-		.attr("x", 5)
-		.attr("dy", function(d,i) { 
-			var angle = (cD[__g.eIndex].endAngle + cD[__g.sIndex].startAngle) / 2;
-			var angleDiff = (cD[__g.eIndex].endAngle - cD[__g.sIndex].startAngle);
-			if (angleDiff > Math.PI) return 18;
-			var offset = (angle > 90*Math.PI/180 & angle < 270*Math.PI/180 ? -8 : 18); 
-			return offset;
-		})
-        .style("font-size", "15px");
+				//Grab everything up to the first Line statement
+				var newArc = firstArcSection.exec( d3.select(this).attr("d") )[1];
+				//Replace all the comma's so that IE can handle it
+				newArc = newArc.replace(/,/g , " ");
+				//If the end angle lies beyond a quarter of a circle (90 degrees or pi/2) 
+				//flip the end and start position
+				var angle = (cD[__g.eIndex].endAngle + cD[__g.sIndex].startAngle) / 2
+				if (angle > 90*Math.PI/180 & angle < 270*Math.PI/180) {
+					var startLoc 	= /M(.*?)A/,		//Everything between the first capital M and first capital A
+						middleLoc 	= /A(.*?)0 0 1/,	//Everything between the first capital A and 0 0 1
+						endLoc 		= /0 0 1 (.*?)$/;	//Everything between the first 0 0 1 and the end of the string (denoted by $)
+					//Flip the direction of the arc by switching the start en end point (and sweep flag)
+					//of those elements that are below the horizontal line
+					var newStart = endLoc.exec( newArc ); 
+					var newEnd = startLoc.exec( newArc );
+					var middleSec = middleLoc.exec( newArc );
+					//Build up the new arc notation, set the sweep-flag to 0
+					if (newStart && newEnd && middleSec)
+					newArc = "M" + newStart[1] + "A" + middleSec[1] + "0 0 0 " + newEnd[1];
+				}//if
+				
+				//Create a new invisible arc that the text can flow along
+				svg.append("path")
+					.attr("class", "hiddenArcs")
+					.attr("id", "arcO"+i)
+					.attr("d", newArc)
+					.style("fill", "none");
+			});
+		
+		// Add a text label.
+		var text = svg.append("text")
+			.attr("x", 5)
+			.attr("dy", function(d,i) { 
+				var angle = (cD[__g.eIndex].endAngle + cD[__g.sIndex].startAngle) / 2;
+				var angleDiff = (cD[__g.eIndex].endAngle - cD[__g.sIndex].startAngle);
+				if (angleDiff > Math.PI) return 18;
+				var offset = (angle > 90*Math.PI/180 & angle < 270*Math.PI/180 ? -8 : 18); 
+				return offset;
+			})
+			.style("font-size", "15px");
 
-	  text.append("textPath")
-		.attr('fill', '#fff')
-		.attr("startOffset","50%")
-		.style("text-anchor","middle")
-        .attr("xlink:href","#arcO" + i)
-		.text(function(d,i){ return wrap(cD[__g.sIndex].startAngle, cD[__g.eIndex].endAngle, __g.title); });
+		text.append("textPath")
+			.attr('fill', '#fff')
+			.attr("startOffset","50%")
+			.style("text-anchor","middle")
+			.attr("xlink:href","#arcO" + i)
+			.text(function(d,i){ return wrap(cD[__g.sIndex].startAngle, cD[__g.eIndex].endAngle, __g.title); });
 
 
+		}
+		svg.selectAll("g.group")
+			.data(cD)
+			.enter().append("g")
+			.attr("class", "group")
+			.on("mouseover", arcMouseover)
+			.on("mouseout", arcMouseout);
 	}
-	svg.selectAll("g.group")
-	.data(cD)
-	.enter().append("g")
-	.attr("class", "group")
-	.on("mouseover", arcMouseover)
-	.on("mouseout", arcMouseout);
+
 	////////////////////////////////////////////////////////////
 	////////////////// Extra Functions /////////////////////////
 	////////////////////////////////////////////////////////////
@@ -358,8 +362,12 @@ function update(groupSet) {
 		}
 		for (var i=0; i<totalSubCategories.length; i++) {
 			if (i === index) {
-				if (totalCategories[i])	content +=  singleLine(totalCategories[i], "Category");
-				if (totalSubCategories[i])	content += singleLine(totalSubCategories[i], "Subitem");
+				if (groupCount === 1) {
+					content +=  singleLine(totalSubCategories[i], selectedCategories[0]);
+					break;
+				}
+				if (totalCategories[i])	content +=  singleLine(totalCategories[i], selectedCategories[0]);
+				if (totalSubCategories[i])	content += singleLine(totalSubCategories[i], selectedCategories[groupCount-1]);
 			}
 		}
 		return content;
