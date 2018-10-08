@@ -43,7 +43,7 @@ function update(groupSet) {
 		var eachAssociations = totalAssociations[i];
 		for (var j = 0; j < eachAssociations.length; j++) {
 			var index = totalIds.indexOf(eachAssociations[j]);
-			matrix[i][index] = 10;
+			matrix[i][index] = 1;
 		}
 	}
 
