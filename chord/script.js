@@ -15,9 +15,11 @@ function update(groupSet) {
 	for (var i = 0; i < groupSet.length; i++) {
 	  totalSubCategories = totalSubCategories.concat(groupSet[i].subCategories);
 	  for (var j = 0; j < groupSet[i].subCategories.length; j++)
-	  	totalCategories.push(groupSet[i].category);
-	  totalIds = totalIds.concat(groupSet[i].ids);
-	  totalAssociations = totalAssociations.concat(groupSet[i].associationsList);
+		  totalCategories.push(groupSet[i].category);
+		  
+		totalIds = totalIds.concat(groupSet[i].ids);
+		totalAssociations = totalAssociations.concat(groupSet[i].associationsList);
+
 	  var endIndex = startIndex + groupSet[i].subCategories.length - 1;
 	  groups.push({
 		sIndex: startIndex,
@@ -32,18 +34,17 @@ function update(groupSet) {
 
 	var matrix = [];
 	for (var i = 0; i < totalSubCategories.length; i++) {
-	  matrix[i] = [];
+		matrix[i] = [];
+		for (var j = 0; j < totalSubCategories.length; j++)
+	  		matrix[i][j] = 0;
 	}
 
-	for (var i = 0; i < totalAssociations.length; i++) {
-	  var eachAssociationList = totalAssociations[i];
-	  for (var j = 0; j < totalIds.length; j++) {
-		// if (eachAssociationList.indexOf(totalIds[j]) > -1)
-		//   matrix[i][j] = 2;
-		// else
-		//   matrix[i][j] = 0;
-		matrix[i][j] = 1;
-	  }
+	for (var i = 0; i < totalIds.length; i++) {
+		var eachAssociations = totalAssociations[i];
+		for (var j = 0; j < eachAssociations.length; j++) {
+			var index = totalIds.indexOf(eachAssociations[j]);
+			matrix[i][index] = 10;
+		}
 	}
 
 	var margin = {left: 100, top: 100, right: 200, bottom: 200},
@@ -52,23 +53,6 @@ function update(groupSet) {
 		innerRadius = Math.min(width, height) * .39,
 		outerRadius = innerRadius * 1.1;
 		
-	// var matrix = [
-	// 	[1, 2, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0],
-	// 	[0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0],
-	// 	[0, 2, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	// 	[0, 0, 0, 2, 0, 2, 0, 2, 2, 0, 0, 0, 0, 0],
-	// 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	// 	[0, 2, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0],
-	// 	[0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0],
-	// 	[0, 0, 0, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0],
-	// 	[2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0],
-	// 	[0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	// 	[0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	// 	[0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0],
-	// 	[0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 2, 0, 2, 0],
-	// 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0],
-	// ];
-
 	////////////////////////////////////////////////////////////
 	/////////// Create scale and layout functions //////////////
 	////////////////////////////////////////////////////////////
@@ -338,7 +322,6 @@ function update(groupSet) {
 	}//function mouseoutChord
 	function arcMouseover(d) {
 		fade(.1, d.index);
-		console.log(d);
 		var x = d3.event.pageX - document.getElementById("svg_board").getBoundingClientRect().x + 10
 		var y = d3.event.pageY - document.getElementById("svg_board").getBoundingClientRect().y + 10
 		var width = document.getElementById("svg_board").getBoundingClientRect().width;

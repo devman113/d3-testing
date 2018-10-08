@@ -1,7 +1,7 @@
 [
     {
         "id": 1,
-        "associations": [2, 6, 8],
+        "associations": [1, 2, 9],
         "columns": {
             "System": "Trading",
             "Subsystem": "Networking",
@@ -23,7 +23,7 @@
     },
     {
         "id": 2,
-        "associations": [2, 6, 8],
+        "associations": [1, 2, 10, 11],
         "columns": {
             "System": "Trading",
             "Subsystem": "",
@@ -45,7 +45,7 @@
     },
     {
         "id": 3,
-        "associations": [2, 5],
+        "associations": [3, 8, 11],
         "columns": {
             "System": "",
             "Subsystem": "",
@@ -66,7 +66,7 @@
     },
     {
         "id": 4,
-        "associations": [4,6,8,9],
+        "associations": [4, 11],
         "columns": {
             "System": "",
             "Subsystem": "",
@@ -87,7 +87,7 @@
     },
     {
         "id": 5,
-        "associations": [],
+        "associations": [5, 8, 13],
         "columns": {
             "System": "",
             "Subsystem": "",
@@ -108,7 +108,7 @@
     },
     {
         "id": 6,
-        "associations": [2,4,8,13],
+        "associations": [6, 12, 13],
         "columns": {
             "System": "Trading",
             "Subsystem": "",
@@ -129,7 +129,7 @@
     },
     {
         "id": 7,
-        "associations": [5,8],
+        "associations": [7, 9, 13, 14],
         "columns": {
             "System": "Monitoring",
             "Subsystem": "",
@@ -150,7 +150,7 @@
     },
     {
         "id": 8,
-        "associations": [4,6,7],
+        "associations": [8, 5, 1, 13, 14],
         "columns": {
             "System": "Research",
             "Subsystem": "AWS Interface",
@@ -172,7 +172,7 @@
     },
     {
         "id": 9,
-        "associations": [1,2, 10],
+        "associations": [9, 4, 7],
         "columns": {
             "System": "Trading",
             "Subsystem": "",
@@ -193,7 +193,7 @@
     },
     {
         "id": 10,
-        "associations": [3,4],
+        "associations": [10, 5, 3],
         "columns": {
             "System": "",
             "Subsystem": "",
@@ -215,7 +215,7 @@
     },
     {
         "id": 11,
-        "associations": [3, 4],
+        "associations": [11, 10, 2],
         "columns": {
             "System": "",
             "Subsystem": "",
@@ -236,7 +236,7 @@
     },
     {
         "id": 12,
-        "associations": [6, 11],
+        "associations": [12, 6, 7],
         "columns": {
             "System": "",
             "Subsystem": "",
@@ -257,7 +257,7 @@
     },
     {
         "id": 13,
-        "associations": [3,6,11,13],
+        "associations": [13, 7, 8, 5],
         "columns": {
             "System": "",
             "Subsystem": "",
@@ -278,7 +278,7 @@
     },
     {
         "id": 14,
-        "associations": [13],
+        "associations": [14, 8],
         "columns": {
             "System": "",
             "Subsystem": "",
