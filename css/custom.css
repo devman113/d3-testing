@@ -1,6 +1,9 @@
 .main-container {
   display: flex;
 }
+.left-panel {
+  margin-left:40px;
+}
 .view-container {
   margin-left: 40px;
 }

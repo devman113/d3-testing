@@ -1,10 +1,7 @@
 .wrapper {
     display: table;
-    height: 300px;
     max-width: 760px;
-    min-height: 435px !important;
     min-width: 300px;
-    margin-left:40px;
     margin-top: 10px;
   }
   .cont-dragula {

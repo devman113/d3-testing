@@ -79,8 +79,16 @@
 	</head>
 	<body>
 		<div class="main-container">
-			<div class="wrapper panel panel-body">
-				<div id="columnsList" class="cont-dragula">
+			<div class="left-panel">
+				<h3>Categories</h3>
+				<div class="wrapper panel panel-body">
+					<div id="columnsList" class="cont-dragula">
+					</div>
+				</div>
+				<h3>Advanced filter</h3>
+				<div class="wrapper panel panel-body">
+					<div id="filtersList" class="cont-dragula">
+					</div>
 				</div>
 			</div>
 			<div class="view-container">
@@ -90,62 +98,67 @@
 		<script src="script.js"></script>
 		<script>
 			var hierarchyData;
-			var filteredColumns;
 			var dataSet;
+			var selectedCategories = [];
+			var selectedFilters = [];
 			d3.json("http://localhost:8000/data/mockDataNew.json", function(error, data) {
 				if (error) throw error;
-				var propertyKeys = [];
+				
 				dataSet = data;
 				if (dataSet.length > 0) {
-				propertyKeys = Object.keys(dataSet[0]['columns']);
-				filteredColumns = [];
-				var eachColumn = d3.select('#columnsList')
+					var categories = ["System", "Subsystem", "ProgramName"];
+					var filters = ["ProgramType", "Language", "HasGUI", "ServerRole", "HostNames", "DeployerPackage", "UsesTeamCity", "SVNURL", "wikiURL", "DBName", "UsedBy", "Developer", "Description"];
+					generateColumns(categories, 'columnsList')
+					generateColumns(filters, 'filtersList')
+				}
+				viewUpdate();
+			});
+			function generateColumns(propertyKeys, containerName) {
+				var eachColumn = d3.select(`#${containerName}`)
 					.selectAll('div')
 					.data(propertyKeys)
 					.enter()
 					.append('div')
 					.attr('class','singleColumnContainer')
 				var checkBox = d3
-					.selectAll('.singleColumnContainer')
+					.selectAll(`#${containerName} .singleColumnContainer`)
 					.data(propertyKeys)
 						.append("input")
 						.attr('type','checkbox')
 						.attr('class','checkList')
 						.attr('id', function (d){ return `check#${d}` })
-						.on('change', columnsUpdated)
+						.on('change', e => columnsUpdated(containerName))
 				var columnLabel = d3
-					.selectAll('.singleColumnContainer')
+					.selectAll(`#${containerName} .singleColumnContainer`)
 					.data(propertyKeys)
 						.append('label')
 						.attr('class', 'columnLabel')
 						.text(function (val){ return val })
 						.attr('id',function (d){ return `label#${d}` })
 						.attr('for', function (d){ return `check#${d}` });
-				}
-				viewUpdate();
-			});
-			function columnsUpdated() {
-				filteredColumns = [];
-				var checkList = document.querySelectorAll('.checkList');
+			}
+			function getSelectedColumns(containerName) {
+				var selectedColumns = [];
+				var checkList = document.querySelectorAll(`#${containerName} .checkList`);
 				checkList.forEach(eachBox => {
 					if (eachBox.checked) {
 						var eachId = eachBox.id.split('#');
-						filteredColumns.push(eachId[1]);
+						selectedColumns.push(eachId[1]);
 					}
 				});
-				viewUpdate()
+				return selectedColumns;
+			}
+			function columnsUpdated(containerName) {
+				if (containerName === 'columnsList') 
+					selectedCategories = getSelectedColumns(containerName);
+				else 
+					selectedFilters = getSelectedColumns(containerName);
+				console.log(selectedCategories, selectedFilters);
+				viewUpdate();
 			}
 			function viewUpdate() {
-				var groupSet = generateGroupset(dataSet, filteredColumns);
+				var groupSet = generateGroupset(dataSet, selectedCategories);
 				update(groupSet);
-			}
-			function getRandomColor() {
-			var letters = '0123456789ABCDEF';
-			var color = '#';
-			for (var i = 0; i < 6; i++) {
-				color += letters[Math.floor(Math.random() * 16)];
-			}
-			return color;
 			}
 			function generateGroupset(dataSet, columnList) {
 				var circularDataSet = [];
