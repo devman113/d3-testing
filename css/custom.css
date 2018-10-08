@@ -8,6 +8,11 @@
   margin-left: 40px;
 }
 .singleColumnContainer {
+  display: flex;
+  justify-content: space-between;
   margin-left: 20px;
   font-family: sans-serif; 
+}
+.moreFilters {
+  cursor: pointer;
 }

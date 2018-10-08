@@ -107,7 +107,7 @@
 				dataSet = data;
 				if (dataSet.length > 0) {
 					var categories = ["System", "Subsystem", "ProgramName"];
-					var filters = ["ProgramType", "Language", "HasGUI", "ServerRole", "HostNames", "DeployerPackage", "UsesTeamCity", "SVNURL", "wikiURL", "DBName", "UsedBy", "Developer", "Description"];
+					var filters = ["System", "Subsystem", "ProgramName", "ProgramType", "Language", "HasGUI", "ServerRole", "HostNames", "DeployerPackage", "UsesTeamCity", "SVNURL", "wikiURL", "DBName", "UsedBy", "Developer", "Description"];
 					generateColumns(categories, 'columnsList')
 					generateColumns(filters, 'filtersList')
 				}
@@ -126,7 +126,7 @@
 						.append("input")
 						.attr('type','checkbox')
 						.attr('class','checkList')
-						.attr('id', function (d){ return `check#${d}` })
+						.attr('id', function (d){ return `${containerName}check#${d}` })
 						.on('change', e => columnsUpdated(containerName))
 				var columnLabel = d3
 					.selectAll(`#${containerName} .singleColumnContainer`)
@@ -134,8 +134,16 @@
 						.append('label')
 						.attr('class', 'columnLabel')
 						.text(function (val){ return val })
-						.attr('id',function (d){ return `label#${d}` })
-						.attr('for', function (d){ return `check#${d}` });
+						.attr('id',function (d){ return `${containerName}label#${d}` })
+						.attr('for', function (d){ return `${containerName}check#${d}` });
+				if (containerName !== 'columnsList') {
+					var moreFilters = d3
+						.selectAll(`#${containerName} .singleColumnContainer`)
+						.append('span')
+						.attr('class','moreFilters')
+						.text('>')
+						.on('click', e => console.log(e))
+				}
 			}
 			function getSelectedColumns(containerName) {
 				var selectedColumns = [];
@@ -153,44 +161,46 @@
 					selectedCategories = getSelectedColumns(containerName);
 				else 
 					selectedFilters = getSelectedColumns(containerName);
-				console.log(selectedCategories, selectedFilters);
 				viewUpdate();
 			}
 			function viewUpdate() {
 				var groupSet = generateGroupset(dataSet, selectedCategories);
-				update(groupSet);
+				console.log(groupSet)
+				if (groupSet.length > 0)
+					update(groupSet);
 			}
 			function generateGroupset(dataSet, columnList) {
+				if (columnList.length === 0) return [];
 				var circularDataSet = [];
 				var categories = [];
 				var groupSet = [];
 				for (var i = 0; i < dataSet.length; i++) {
-				var dataElement = dataSet[i]['columns'];
-				var id = dataSet[i]['id'];
-				var category = dataElement[columnList[0]];
-				var subCategory = dataElement[columnList[columnList.length-1]];
-				var associations = dataSet[i]['associations'];
-				var pos = categories.indexOf(category);
+					var dataElement = dataSet[i]['columns'];
+					var id = dataSet[i]['id'];
+					var category = dataElement[columnList[0]];
+					var subCategory = dataElement[columnList[columnList.length-1]];
+					var associations = dataSet[i]['associations'];
+					var pos = categories.indexOf(category);
 
-				if (pos < 0) {
-					groupSet.push({
-					ids: [id],
-					associationsList: [associations],
-					category: category,
-					subCategories: [subCategory]
-					});
-					categories.push(category);
-				} else {
-					var subCategories = groupSet[pos]['subCategories'];
-					var ids = groupSet[pos]['ids'];
-					var associationsList = groupSet[pos]['associationsList'];
-					var subPos = subCategories.indexOf(subCategory);
-					if (subPos < 0) {
-					subCategories.push(subCategory);
-					ids.push(id);
-					associationsList.push(associations);
-					} 
-				}
+					if (pos < 0) {
+						groupSet.push({
+						ids: [id],
+						associationsList: [associations],
+						category: category,
+						subCategories: [subCategory]
+						});
+						categories.push(category);
+					} else {
+						var subCategories = groupSet[pos]['subCategories'];
+						var ids = groupSet[pos]['ids'];
+						var associationsList = groupSet[pos]['associationsList'];
+						var subPos = subCategories.indexOf(subCategory);
+						if (subPos < 0) {
+						subCategories.push(subCategory);
+						ids.push(id);
+						associationsList.push(associations);
+						} 
+					}
 				}
 				for (var i = 0; i < groupSet.length; i++) {
 					var dataElement = groupSet[i];
