@@ -330,10 +330,12 @@ function update(groupSet) {
 		if (x < width/2) {
 			offsetX = -100;
 			if (y < height/2) offsetY = -100;
+			else offsetY = 20;
 		}
 		if (x > width/2) {
 			offsetX = 50;
 			if (y < height/2) offsetY = -100;
+			else offsetY = 20;
 		}
 
 		tooltip.style("margin-left", x+offsetX+"px");
