@@ -5,8 +5,10 @@
 		<link rel="stylesheet" type="text/css" href="../css/dragula.css">
 		<link rel="stylesheet" type="text/css" href="../css/checkbox.css">
 		<link rel="stylesheet" type="text/css" href="../css/custom.css">
+		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/tingle/0.13.2/tingle.min.css">
 		<script src="https://d3js.org/d3.v4.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/tingle/0.13.2/tingle.min.js"></script>
 		<script src="d3.layout.chord.sort.js"></script>
 		<style>
 			body {
@@ -75,6 +77,12 @@
 				border-radius: 4px;
 				z-index: 10;
 			}
+			.filterOptionContainer div {
+				padding: 5px;
+			}
+			.tingle-modal-box {
+				width: 350px;
+			}
 		</style>
 	</head>
 	<body>
@@ -142,7 +150,7 @@
 						.append('span')
 						.attr('class','moreFilters')
 						.text('>')
-						.on('click', e => console.log(e))
+						.on('click', e => generateFilterOptions(e))
 				}
 			}
 			function getSelectedColumns(containerName) {
@@ -194,9 +202,9 @@
 						var associationsList = groupSet[pos]['associationsList'];
 						var subPos = subCategories.indexOf(subCategory);
 						if (subPos < 0) {
-						subCategories.push(subCategory);
-						ids.push(id);
-						associationsList.push(associations);
+							subCategories.push(subCategory);
+							ids.push(id);
+							associationsList.push(associations);
 						} 
 					}
 				}
@@ -211,11 +219,57 @@
 				}
 				return groupSet;
 			}
+			function generateFilterOptions(columnName) {
+				var availableOptions = [];
+				for (var i = 0; i < dataSet.length; i++) {
+					var eachColumn = dataSet[i]['columns'][columnName];
+					if (!eachColumn) eachColumn = `No ${columnName}`;
+					if (availableOptions.indexOf(eachColumn) < 0) {
+						availableOptions.push(eachColumn);
+					}
+				}
+				generateFilterModalContent(availableOptions);
+			}
+			function generateFilterModalContent(availableOptions) {
+				var modalContent = '<div class="filterOptionContainer">';
+				availableOptions.forEach(option => {
+					modalContent += '<div><input type="checkbox" className="eachProperty" id="checkboxFilter#'+option+'" checked="checked" />';
+					modalContent += '<label class="columnLabel" id="labelFilter#'+option+'" for="checkboxFilter#'+option+'">'+option+'</label></div>';
+				})
+				modalContent += '</div>';
+				modal.setContent(modalContent);
+				modal.open();
+				return modalContent;
+			}
 			// ----- Dragula Configuration -----
 			drake = dragula([columnsList]);
 			drake
 			.on('dragend', function (el, target, source, sibling) {
 				columnsUpdated();
+			});
+			// ----- Modal Configuration -----
+			var modal = new tingle.modal({
+				footer: true,
+				stickyFooter: false,
+				closeMethods: ['overlay', 'button', 'escape'],
+				closeLabel: "Close",
+				cssClass: ['custom-class-1', 'custom-class-2'],
+				onOpen: function() {
+					console.log('modal open');
+				},
+				onClose: function() {
+					console.log('modal closed');
+				},
+				beforeClose: function() {
+					// here's goes some logic
+					// e.g. save content before closing the modal
+					return true; // close the modal
+					return false; // nothing happens
+				}
+			});
+			modal.addFooterBtn('Close', 'tingle-btn tingle-btn--primary', function() {
+				// here goes some logic
+				modal.close();
 			});
 		</script>
   </body>
