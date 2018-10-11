@@ -110,6 +110,9 @@
 			var dataAssociations;
 			var selectedCategories = [];
 			var selectedFilters = [];
+			var availableOptions = [];
+			var availableColumn;
+			var blockList = {};
 			d3.json("http://localhost:8000/data/mockDataAssociated.json", function(error, data) {
 				if (error) throw error;
 				
@@ -118,7 +121,7 @@
 
 				if (dataSet.length > 0) {
 					var categories = ["System", "Subsystem", "Program Name"];
-					var filters = ["System", "Subsystem", "Program Name", "Program Type", "Language", "HasGUI", "ServerRole", "HostNames", "DeployerPackage", "UsesTeamCity", "SVNURL", "wikiURL", "DBName", "UsedBy", "Developer", "Description"];
+					var filters = Object.keys(dataSet[0]);
 					generateColumns(categories, 'columnsList')
 					generateColumns(filters, 'filtersList')
 				}
@@ -136,6 +139,7 @@
 					.data(propertyKeys)
 						.append("input")
 						.attr('type','checkbox')
+						.attr(containerName !== 'columnsList' ? 'checked':'unchecked', true)
 						.attr('class','checkList')
 						.attr('id', function (d){ return `${containerName}check#${d}` })
 						.on('change', e => columnsUpdated(containerName))
@@ -185,6 +189,9 @@
 				var groupSet = [];
 				for (var i = 0; i < dataSet.length; i++) {
 					var dataElement = dataSet[i];
+					
+					if (checkBlocking(dataElement)) continue;
+
 					var id = i+1;
 					var category = dataElement[columnList[0]];
 					var subCategory = dataElement[columnList[columnList.length-1]];
@@ -223,7 +230,8 @@
 				return groupSet;
 			}
 			function generateFilterOptions(columnName) {
-				var availableOptions = [];
+				availableOptions = [];
+				availableColumn = columnName;
 				for (var i = 0; i < dataSet.length; i++) {
 					var eachColumn = dataSet[i][columnName];
 					if (!eachColumn) eachColumn = `No ${columnName}`;
@@ -231,20 +239,56 @@
 						availableOptions.push(eachColumn);
 					}
 				}
-				generateFilterModalContent(availableOptions);
+				generateFilterModalContent(availableOptions, columnName);
 			}
-			function generateFilterModalContent(availableOptions) {
+			function generateFilterModalContent(availableOptions, columnName) {
 				var modalContent = '<div class="filterOptionContainer">';
-				availableOptions.forEach(option => {
-					modalContent += '<div><input type="checkbox" className="eachProperty" id="checkboxFilter#'+option+'" checked="checked" />';
-					modalContent += '<label class="columnLabel" id="labelFilter#'+option+'" for="checkboxFilter#'+option+'">'+option+'</label></div>';
+				availableOptions.forEach((option, i) => {
+					var col = columnName.replace(/\s/g, '');
+					var elementId = `${col}#${i}`;
+					var isChecked = "checked";
+					if (blockList[columnName]) {
+						if (blockList[columnName].indexOf(option) > -1) isChecked = "unchecked";
+					}
+					modalContent += '<div><input type="checkbox" class="eachProperty" id="checkboxFilter#'+elementId+'" onChange="filterOptionChange()" '+isChecked+' />';
+					modalContent += '<label class="columnLabel" id="labelFilter#'+elementId+'" for="checkboxFilter#'+elementId+'">'+option+'</label></div>';
 				})
 				modalContent += '</div>';
 				modal.setContent(modalContent);
 				modal.open();
 				return modalContent;
 			}
-			// ----- Dragula Configuration -----
+			function filterOptionChange() {
+				var category = availableColumn;
+				blockList[category] = [];
+				var properties  = document.getElementsByClassName("eachProperty");
+				var propertyArray = Array.prototype.slice.call(properties);
+				
+				propertyArray.forEach((property) => {
+					var pos = property.id.split('#')[2];
+					var itemToBlock = availableOptions[pos];
+
+					if (itemToBlock.length > 3)
+					if (itemToBlock.substr(0, 3) === 'No ') itemToBlock = '';
+					
+					if (document.getElementById(property.id).checked === false) blockList[category].push(itemToBlock);
+				});
+				console.log(blockList);
+				viewUpdate();
+			}
+			function checkBlocking(dataElement) {
+				var isBlocked = false;
+				Object.keys(dataElement).some(property => {
+					if (blockList[property]) {
+						if (blockList[property].indexOf(dataElement[property]) > -1) {
+							isBlocked = true;
+							return;
+						}
+					}
+				});
+				return isBlocked;
+			}
+			// ----- Dragula Configuration ----- 
 			drake = dragula([columnsList]);
 			drake
 			.on('dragend', function (el, target, source, sibling) {
