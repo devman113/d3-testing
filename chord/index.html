@@ -107,15 +107,18 @@
 		<script>
 			var hierarchyData;
 			var dataSet;
+			var dataAssociations;
 			var selectedCategories = [];
 			var selectedFilters = [];
-			d3.json("http://localhost:8000/data/mockDataNew.json", function(error, data) {
+			d3.json("http://localhost:8000/data/mockDataAssociated.json", function(error, data) {
 				if (error) throw error;
 				
-				dataSet = data;
+				dataSet = data.columns;
+				dataAssociations = data.associations;
+
 				if (dataSet.length > 0) {
-					var categories = ["System", "Subsystem", "ProgramName"];
-					var filters = ["System", "Subsystem", "ProgramName", "ProgramType", "Language", "HasGUI", "ServerRole", "HostNames", "DeployerPackage", "UsesTeamCity", "SVNURL", "wikiURL", "DBName", "UsedBy", "Developer", "Description"];
+					var categories = ["System", "Subsystem", "Program Name"];
+					var filters = ["System", "Subsystem", "Program Name", "Program Type", "Language", "HasGUI", "ServerRole", "HostNames", "DeployerPackage", "UsesTeamCity", "SVNURL", "wikiURL", "DBName", "UsedBy", "Developer", "Description"];
 					generateColumns(categories, 'columnsList')
 					generateColumns(filters, 'filtersList')
 				}
@@ -181,11 +184,11 @@
 				var categories = [];
 				var groupSet = [];
 				for (var i = 0; i < dataSet.length; i++) {
-					var dataElement = dataSet[i]['columns'];
-					var id = dataSet[i]['id'];
+					var dataElement = dataSet[i];
+					var id = i+1;
 					var category = dataElement[columnList[0]];
 					var subCategory = dataElement[columnList[columnList.length-1]];
-					var associations = dataSet[i]['associations'];
+					var associations = dataAssociations[i%3];
 					var pos = categories.indexOf(category);
 
 					if (pos < 0) {
@@ -222,7 +225,7 @@
 			function generateFilterOptions(columnName) {
 				var availableOptions = [];
 				for (var i = 0; i < dataSet.length; i++) {
-					var eachColumn = dataSet[i]['columns'][columnName];
+					var eachColumn = dataSet[i][columnName];
 					if (!eachColumn) eachColumn = `No ${columnName}`;
 					if (availableOptions.indexOf(eachColumn) < 0) {
 						availableOptions.push(eachColumn);
