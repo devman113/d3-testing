@@ -124,8 +124,14 @@
       $(go.Link,
         { 
           toShortLength: 3,
-          curviness: -10,
+          curviness: 0,
+          selectionAdorned: true,
+          layerName: "Foreground",
+          reshapable: true,
           relinkableFrom: true, 
+          routing: go.Link.AvoidsNodes,
+          curve: go.Link.JumpOver,
+          corner: 5,
           relinkableTo: true 
         },  // allow the user to relink existing links
         $(go.Shape,
@@ -160,6 +166,7 @@
     myDiagram.groupTemplate =
       $(go.Group, "Vertical",
         { selectionObjectName: "PANEL",  // selection handle goes around shape, not label
+          avoidable: false,
           ungroupable: true },  // enable Ctrl-Shift-G to ungroup a selected Group
         $(go.TextBlock,
           {
