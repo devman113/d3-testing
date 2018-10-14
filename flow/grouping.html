@@ -126,10 +126,11 @@
           toShortLength: 3,
           curviness: 0,
           selectionAdorned: true,
-          layerName: "Foreground",
+          layerName: "Background",
           reshapable: true,
           relinkableFrom: true, 
-          routing: go.Link.AvoidsNodes,
+          // routing: go.Link.AvoidsNodes,
+          corner: 5,
           relinkableTo: true 
         },  // allow the user to relink existing links
         $(go.Shape,
@@ -264,12 +265,13 @@
       var dbObjPos = 0;
 
       transformationData.forEach((eachTransform, i) => {
+        var heightUnit = 60;
         var fromPosX = 100;
-        var fromPosY = fromObjPos*50;
-        var toPosX = 500;
-        var toPosY = toObjPos*50;
-        var dbPosX = 900;
-        var dbPosY = dbObjPos*50;
+        var fromPosY = fromObjPos*heightUnit;
+        var toPosX = 600;
+        var toPosY = toObjPos*heightUnit;
+        var dbPosX = 1000;
+        var dbPosY = dbObjPos*heightUnit;
 
         let isExisting = nodeDataArray.find( node => node.key === startPointFrom + eachTransform.from );
         if (!isExisting) {
