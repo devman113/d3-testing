@@ -5,17 +5,6 @@
         [1, 5, 9],   
         [3, 4, 7]    
     ],
-    "dataTransformation": {
-        "data": [
-            { "from": 1, "to": 2 },
-            { "from": 1, "to": 4 },
-            { "from": 3, "to": 4 },
-            { "from": 5, "to": 8 },
-            { "from": 6, "to": 4 },
-            { "from": 7, "to": 3 },
-            { "from": 7, "to": 11 }
-        ]
-    },
     "columns": [{
         "System": "Trading",
         "Subsystem": "Networking",

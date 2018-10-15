@@ -234,9 +234,13 @@
                      function(o) { return o.diagram.commandHandler.canRedo(); })
       );
     // Create the Diagram's Model:
-    jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json', function(source) {
+    var dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
+    var dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
+    var colors = ["green", "red", "purple"];
+      
+    jQuery.when(dataSource, dataTransformation)
+      .done(function(dataSourceResult, dataTransformationResult) {
       //data is the JSON string
-      var colors = ["green", "red", "purple"];
       var nodeDataArray = [
         { 
           key: 1, 
@@ -260,8 +264,9 @@
       ];
       var linkDataArray = [
       ];
-      var transformationData = source.dataTransformation.data;
-      var columnData = source.columns;
+
+      var transformationData = dataTransformationResult[0]['dataTransformation']['data'];
+      var columnData = dataSourceResult[0]['columns'];
 
       columnData = assignUniqueId(columnData);
       configureColumnSelects(columnData);
