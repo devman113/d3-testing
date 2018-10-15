@@ -243,19 +243,19 @@
       //data is the JSON string
       var nodeDataArray = [
         { 
-          key: 1, 
+          key: "group#dataSource", 
           text: "DataSource", 
           color: "green", 
           isGroup: true, 
         },
         { 
-          key: 2, 
+          key: "group#dataTransformation", 
           text: "DataTransformation", 
           color: "red", 
           isGroup: true,
         },
         { 
-          key: 3, 
+          key: "group#database", 
           text: "Database", 
           color: "purple", 
           isGroup: true,
@@ -298,7 +298,7 @@
             key: startPointFrom + eachTransform.from,
             text: columnData[eachTransform.from]['Program Name'],
             color: colors[0],
-            group: 1,
+            group: "group#dataSource",
             loc: `${fromPosX}, ${fromPosY}`
           };
           nodeDataArray.push(nodeFrom);
@@ -311,7 +311,7 @@
             key: startPointTo + eachTransform.to,
             text: columnData[eachTransform.to]['Program Name'],
             color: colors[1],
-            group: 2,
+            group: "group#dataTransformation",
             loc: `${toPosX}, ${toPosY}`
           };
           nodeDataArray.push(nodeTo);
@@ -330,7 +330,7 @@
             key: startPointDB + dbObjPos,
             text: columnData[eachTransform.to]['DBName(s)'],
             color: colors[2],
-            group: 3,
+            group: "group#database",
             loc: `${dbPosX}, ${dbPosY}`
           };
           dbCollection.push(dbName);
