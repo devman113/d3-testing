@@ -4,11 +4,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Basic GoJS Sample</title>
   <meta charset="UTF-8">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/tingle/0.13.2/tingle.min.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="../css/dragula.css">
   <link rel="stylesheet" type="text/css" href="../css/checkbox.css">
   <link rel="stylesheet" type="text/css" href="../css/custom.css">
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/tingle/0.13.2/tingle.min.css">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/1.8.31/go.js"></script>
   <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
@@ -17,14 +17,6 @@
 <body onload="init()">
   <div class="main-container">
     <div class="left-panel">
-        <h4>From:</h4>
-        <select id="fromColumns" class="customSelect"></select>
-        <br />
-        <h4>To:</h4>
-        <select id="toColumns"  class="customSelect"></select>
-        <br /><br />
-        <button onclick="insertConnection()">Insert</button>
-        <br /><br />
 				<h4>Advanced filter</h4>
         <div class="wrapper panel panel-body">
 					<div id="filtersList" class="cont-dragula">
@@ -32,10 +24,63 @@
 				</div>
     </div>
     <div class="view-container">
+      <div class="connector-container">
+        <div class="select-container">
+          <span>From:</span>
+          <select id="fromColumns" class="customSelect"></select>
+        </div>
+        <div class="select-container">
+          <span>To:</span>
+          <select id="toColumns"  class="customSelect"></select>
+        </div>
+        <button onclick="insertConnection()">Insert</button>
+      </div>
+      <br />
       <div id="myDiagramDiv" style="border: solid 1px black; width: 1200px; height:600px"></div>
     </div>
   </div>
   <script id="code">
+    var colorsArray = ["green", "red", "purple"];
+    var dataSet = [], transformationData = [];
+    var availableOptions = [];
+    var availableColumn;
+		var blockList = {};
+    var maxFrom = 1000, maxTo = 2000;
+    var heightUnit = 60;
+    var fromPosX = 100;
+    var toPosX = 600;
+    var dbPosX = 1000;
+
+    var DATA_SOURCE_GROUP = "group#dataSource";
+    var DATA_TRANSFORMATION_GROUP = "group#dataTransformation";
+    var DATABASE_GROUP = "group#database";
+    var colors = {};
+    colors[DATA_SOURCE_GROUP] = colorsArray[0];
+    colors[DATA_TRANSFORMATION_GROUP] = colorsArray[1];
+    colors[DATABASE_GROUP] = colorsArray[2];
+
+    var nodeDataArray = [
+      { 
+        key: DATA_SOURCE_GROUP, 
+        text: "DataSource", 
+        color: colors[DATA_SOURCE_GROUP], 
+        isGroup: true, 
+      },
+      { 
+        key: DATA_TRANSFORMATION_GROUP, 
+        text: "DataTransformation", 
+        color: colors[DATA_TRANSFORMATION_GROUP], 
+        isGroup: true,
+      },
+      { 
+        key: DATABASE_GROUP, 
+        text: "Database", 
+        color: colors[DATABASE_GROUP], 
+        isGroup: true,
+      },
+    ];
+    var linkDataArray = [
+    ];
     function init() {
       if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
       var $ = go.GraphObject.make;  // for conciseness in defining templates
@@ -249,74 +294,95 @@
                       function(e, obj) { e.diagram.commandHandler.redo(); },
                       function(o) { return o.diagram.commandHandler.canRedo(); })
         );
-      // Create the Diagram's Model:
-      var dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
-      var dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
-        
-      jQuery.when(dataSource, dataTransformation)
-        .done(function(dataSourceResult, dataTransformationResult) {
+
+    // Create the Diagram's Model:
+    var dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
+    var dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
+      
+    jQuery.when(dataSource, dataTransformation)
+      .done(function(dataSourceResult, dataTransformationResult) {
         //data is the JSON string
         transformationData = dataTransformationResult[0]['dataTransformation']['data'];
-        columnData = dataSourceResult[0]['columns'];
+        dataSet = dataSourceResult[0]['columns'];
 
-        columnData = assignUniqueId(columnData);
-        configureColumnSelects(columnData);
+        dataSet = assignUniqueId(dataSet);
+        configureColumnSelects(dataSet);
         getNodeLink();
         generateViewByNodeLink();
 
-        var filters = Object.keys(columnData[0]);
+        var filters = Object.keys(dataSet[0]);
         generateColumns(filters)
-
       });
     }
+
     function generateColumns(filters) {
       filters.forEach(filter => {
         var content = `<div class="singleColumnContainer">`;
         content += `<input type="checkbox" checked="true" class="checkList" id="filtersListcheck#${filter}">`;
         content += `<label class="columnLabel" id="filtersListlabel#${filter}" for="filtersListcheck#${filter}">${filter}</label>`
-        content += `<span class="moreFilters">&gt;</span></div>`;
+        content += `<span class="moreFilters" onclick="generateFilterOptions('`+filter+`')">&gt;</span></div>`;
         $('#filtersList').append(content);
       });
     }
+    function generateFilterOptions(columnName) {
+      availableOptions = [];
+      availableColumn = columnName;
+      for (var i = 0; i < dataSet.length; i++) {
+        var eachColumn = dataSet[i][columnName];
+        if (!eachColumn) eachColumn = `No ${columnName}`;
+        if (availableOptions.indexOf(eachColumn) < 0) {
+          availableOptions.push(eachColumn);
+        }
+      }
+      generateFilterModalContent(availableOptions, columnName);
+    }
+    function generateFilterModalContent(availableOptions, columnName) {
+      var modalContent = '<div class="filterOptionContainer">';
+      availableOptions.forEach((option, i) => {
+        var col = columnName.replace(/\s/g, '');
+        var elementId = `${col}#${i}`;
+        var isChecked = "checked";
+        if (blockList[columnName]) {
+          if (blockList[columnName].indexOf(option) > -1) isChecked = "unchecked";
+        }
+        modalContent += '<div><input type="checkbox" class="eachProperty" id="checkboxFilter#'+elementId+'" onChange="filterOptionChange()" '+isChecked+' />';
+        modalContent += '<label class="columnLabel" id="labelFilter#'+elementId+'" for="checkboxFilter#'+elementId+'">'+option+'</label></div>';
+      })
+      modalContent += '</div>';
+      modal.setContent(modalContent);
+      modal.open();
+      return modalContent;
+    }
+    function filterOptionChange() {
+      var category = availableColumn;
+      blockList[category] = [];
+      var properties  = document.getElementsByClassName("eachProperty");
+      var propertyArray = Array.prototype.slice.call(properties);
+      
+      propertyArray.forEach((property) => {
+        var pos = property.id.split('#')[2];
+        var itemToBlock = availableOptions[pos];
 
-    var colorsArray = ["green", "red", "purple"];
-    var columnData = [], transformationData = [];
-    var maxFrom = 1000, maxTo = 2000;
-    var heightUnit = 60;
-    var fromPosX = 100;
-    var toPosX = 600;
-    var dbPosX = 1000;
+        if (itemToBlock.length > 3)
+        if (itemToBlock.substr(0, 3) === 'No ') itemToBlock = '';
+        
+        if (document.getElementById(property.id).checked === false) blockList[category].push(itemToBlock);
+      });
+    }
+    function checkBlocking(dataElement) {
+				var isBlocked = false;
+				Object.keys(dataElement).some(property => {
+					if (blockList[property]) {
+						if (blockList[property].indexOf(dataElement[property]) > -1) {
+							isBlocked = true;
+							return;
+						}
+					}
+				});
+				return isBlocked;
+			}
 
-    var DATA_SOURCE_GROUP = "group#dataSource";
-    var DATA_TRANSFORMATION_GROUP = "group#dataTransformation";
-    var DATABASE_GROUP = "group#database";
-    var colors = {};
-    colors[DATA_SOURCE_GROUP] = colorsArray[0];
-    colors[DATA_TRANSFORMATION_GROUP] = colorsArray[1];
-    colors[DATABASE_GROUP] = colorsArray[2];
-
-    var nodeDataArray = [
-      { 
-        key: DATA_SOURCE_GROUP, 
-        text: "DataSource", 
-        color: colors[DATA_SOURCE_GROUP], 
-        isGroup: true, 
-      },
-      { 
-        key: DATA_TRANSFORMATION_GROUP, 
-        text: "DataTransformation", 
-        color: colors[DATA_TRANSFORMATION_GROUP], 
-        isGroup: true,
-      },
-      { 
-        key: DATABASE_GROUP, 
-        text: "Database", 
-        color: colors[DATABASE_GROUP], 
-        isGroup: true,
-      },
-    ];
-    var linkDataArray = [
-    ];
+    // --- Node & Link manipulation ---
     function insertConnection() {
       var fromIndex = $('#fromColumns').val();
       var toIndex = $('#toColumns').val();
@@ -330,7 +396,7 @@
         return self.indexOf(item) == pos && item.group === group;
       });
       var posY = groupSet.length*heightUnit;
-      var obj = columnData.filter(obj => obj.id === key);
+      var obj = dataSet.filter(obj => obj.id === key);
       var isExisting = nodeDataArray.find( node => node.key === key );
       var text = property === 'Program Name' ? obj[0][property] : property
 
@@ -347,7 +413,7 @@
       }
     }
     function addNewNodesLinks(fromIndex, toIndex) {
-      var toObject = columnData.filter(obj => obj.id === toIndex);
+      var toObject = dataSet.filter(obj => obj.id === toIndex);
       var dbNodeKey = toObject[0]['DBName(s)'];
       addNewNode(fromIndex, DATA_SOURCE_GROUP, 'Program Name', fromPosX);
       addNewNode(toIndex, DATA_TRANSFORMATION_GROUP, 'Program Name', toPosX);
@@ -367,8 +433,8 @@
 
       transformationData.forEach((eachTransform, i) => {
 
-        var fromObject = columnData.filter(obj => obj.id === eachTransform.from);
-        var toObject = columnData.filter(obj => obj.id === eachTransform.to);
+        var fromObject = dataSet.filter(obj => obj.id === eachTransform.from);
+        var toObject = dataSet.filter(obj => obj.id === eachTransform.to);
 
         addNewNode(eachTransform.from, DATA_SOURCE_GROUP, 'Program Name', fromPosX);
         addNewNode(eachTransform.to, DATA_TRANSFORMATION_GROUP, 'Program Name', toPosX);
@@ -389,11 +455,11 @@
         linkDataArray: linkDataArray
       }
     }
-    function assignUniqueId(columnData) {
-      return columnData.map((eachRecord, i) =>  { eachRecord['id'] = `record#${i}`; return eachRecord; });
+    function assignUniqueId(dataSet) {
+      return dataSet.map((eachRecord, i) =>  { eachRecord['id'] = `record#${i}`; return eachRecord; });
     }
-    function configureColumnSelects(columnData) {
-      columnData.forEach(eachRecord => {
+    function configureColumnSelects(dataSet) {
+      dataSet.forEach(eachRecord => {
         $('.customSelect').append($('<option>', {
             value: eachRecord['id'],
             text: eachRecord['Program Name']
@@ -403,6 +469,30 @@
     $(document).ready(function() {
       $('.customSelect').select2();
     });
+    // ----- Modal Configuration -----
+			var modal = new tingle.modal({
+				footer: true,
+				stickyFooter: false,
+				closeMethods: ['overlay', 'button', 'escape'],
+				closeLabel: "Close",
+				cssClass: ['custom-class-1', 'custom-class-2'],
+				onOpen: function() {
+					console.log('modal open');
+				},
+				onClose: function() {
+					console.log('modal closed');
+				},
+				beforeClose: function() {
+					// here's goes some logic
+					// e.g. save content before closing the modal
+					return true; // close the modal
+					return false; // nothing happens
+				}
+			});
+			modal.addFooterBtn('Close', 'tingle-btn tingle-btn--primary', function() {
+				// here goes some logic
+				modal.close();
+			});
   </script>
 </body>
 </html>

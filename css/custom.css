@@ -8,16 +8,45 @@
 .view-container {
   margin-left: 40px;
 }
+
+.connector-container {
+  display: flex;
+  vertical-align: center;
+  width: 100%;
+  margin-top: 15px;
+}
+
+.select-container {
+  margin-right: 30px;
+}
+
 .singleColumnContainer {
   display: flex;
   justify-content: space-between;
   margin-left: 20px;
   font-family: sans-serif; 
 }
+
 .moreFilters {
   cursor: pointer;
+  color: #3182bd;
 }
 
 .customSelect {
-  width: 100%;
+  min-width: 300px;
+  padding: 10px;
+}
+
+.filterOptionContainer div {
+  padding: 5px;
+}
+.tingle-modal-box {
+  width: 500px;
+}
+.filterOptionContainer {
+  max-height: 500px;
+  overflow-y: scroll;
+}
+input[class=eachProperty] + label {
+  display: flex;
 }
