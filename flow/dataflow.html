@@ -270,16 +270,33 @@
         transformationData = dataTransformationResult[0]['dataTransformation']['data'];
         dataSet = dataSourceResult[0]['columns'];
 
+        generateSortedSystemSubSystem(dataSet);
+
         dataSet = assignUniqueId(dataSet);
         configureColumnSelects(dataSet);
         getNodeLink();
         generateViewByNodeLink();
-
+        
         var filters = Object.keys(dataSet[0]);
-        generateColumns(filters)
+        generateColumns(filters);
       });
     }
-
+    function generateSortedSystemSubSystem(dataSet) {
+      var subSystems = dataSet.map(record => record['Subsystem']);
+      var systems = dataSet.map(record => record['System']);
+      var sortedSubSystems = generateSubSystemsList(subSystems);
+      var sortedSystems = systems.filter(function(item, pos) {
+          return systems.indexOf(item) == pos;
+      });
+    }
+    function generateSubSystemsList(subSystems) {
+      var subSystemsMap = subSystems.reduce(function (p, c) {
+            p[c] = (p[c] || 0) + 1;
+            return p;
+      }, {});
+      var keysSorted = Object.keys(subSystemsMap).sort(function(a,b){return subSystemsMap[b]-subSystemsMap[a]})
+      return keysSorted;
+    }
     function generateColumns(filters) {
       filters.forEach(filter => {
         var content = `<div class="singleColumnContainer">`;
@@ -294,7 +311,6 @@
       availableColumn = columnName;
       for (var i = 0; i < dataSet.length; i++) {
         var eachColumn = dataSet[i][columnName];
-        // if (!eachColumn) eachColumn = `No ${columnName}`;
         if (availableOptions.indexOf(eachColumn) < 0) {
           availableOptions.push(eachColumn);
         }
