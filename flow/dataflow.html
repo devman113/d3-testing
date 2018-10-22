@@ -45,42 +45,7 @@
     var availableOptions = [];
     var availableColumn;
 		var blockList = {};
-    var maxFrom = 1000, maxTo = 2000;
-    var heightUnit = 60;
-    var fromPosX = 100;
-    var toPosX = 600;
-    var dbPosX = 1000;
 
-    var DATA_SOURCE_GROUP = "group#dataSource";
-    var DATA_TRANSFORMATION_GROUP = "group#dataTransformation";
-    var DATABASE_GROUP = "group#database";
-    var colors = {};
-    colors[DATA_SOURCE_GROUP] = colorsArray[0];
-    colors[DATA_TRANSFORMATION_GROUP] = colorsArray[1];
-    colors[DATABASE_GROUP] = colorsArray[2];
-
-    var nodeDataArray = [
-      { 
-        key: DATA_SOURCE_GROUP, 
-        text: "DataSource", 
-        color: colors[DATA_SOURCE_GROUP], 
-        isGroup: true, 
-      },
-      { 
-        key: DATA_TRANSFORMATION_GROUP, 
-        text: "DataTransformation", 
-        color: colors[DATA_TRANSFORMATION_GROUP], 
-        isGroup: true,
-      },
-      { 
-        key: DATABASE_GROUP, 
-        text: "Database", 
-        color: colors[DATABASE_GROUP], 
-        isGroup: true,
-      },
-    ];
-    var linkDataArray = [
-    ];
     function init() {
       if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
       var $ = go.GraphObject.make;  // for conciseness in defining templates
@@ -329,7 +294,7 @@
       availableColumn = columnName;
       for (var i = 0; i < dataSet.length; i++) {
         var eachColumn = dataSet[i][columnName];
-        if (!eachColumn) eachColumn = `No ${columnName}`;
+        // if (!eachColumn) eachColumn = `No ${columnName}`;
         if (availableOptions.indexOf(eachColumn) < 0) {
           availableOptions.push(eachColumn);
         }
@@ -345,12 +310,13 @@
         if (blockList[columnName]) {
           if (blockList[columnName].indexOf(option) > -1) isChecked = "unchecked";
         }
+        if (option === "") option = `No ${columnName}`;
         modalContent += '<div><input type="checkbox" class="eachProperty" id="checkboxFilter#'+elementId+'" onChange="filterOptionChange()" '+isChecked+' />';
         modalContent += '<label class="columnLabel" id="labelFilter#'+elementId+'" for="checkboxFilter#'+elementId+'">'+option+'</label></div>';
       })
       modalContent += '</div>';
       modal.setContent(modalContent);
-      modal.open();
+      modal.open(); 
       return modalContent;
     }
     function filterOptionChange() {
@@ -383,6 +349,42 @@
 			}
 
     // --- Node & Link manipulation ---
+    var maxFrom = 1000, maxTo = 2000;
+    var heightUnit = 60;
+    var fromPosX = 100;
+    var toPosX = 600;
+    var dbPosX = 1000;
+
+    var DATA_SOURCE_GROUP = "group#dataSource";
+    var DATA_TRANSFORMATION_GROUP = "group#dataTransformation";
+    var DATABASE_GROUP = "group#database";
+    var colors = {};
+    colors[DATA_SOURCE_GROUP] = colorsArray[0];
+    colors[DATA_TRANSFORMATION_GROUP] = colorsArray[1];
+    colors[DATABASE_GROUP] = colorsArray[2];
+
+    var nodeDataArray = [
+      { 
+        key: DATA_SOURCE_GROUP, 
+        text: "DataSource", 
+        color: colors[DATA_SOURCE_GROUP], 
+        isGroup: true, 
+      },
+      { 
+        key: DATA_TRANSFORMATION_GROUP, 
+        text: "DataTransformation", 
+        color: colors[DATA_TRANSFORMATION_GROUP], 
+        isGroup: true,
+      },
+      { 
+        key: DATABASE_GROUP, 
+        text: "Database", 
+        color: colors[DATABASE_GROUP], 
+        isGroup: true,
+      },
+    ];
+    var linkDataArray = [
+    ];
     function insertConnection() {
       var fromIndex = $('#fromColumns').val();
       var toIndex = $('#toColumns').val();
