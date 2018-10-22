@@ -1,8 +1,9 @@
 .main-container {
+  padding: 30px;
   display: flex;
 }
 .left-panel {
-  margin-left:40px;
+  margin-left: 40px;
 }
 .view-container {
   margin-left: 40px;
@@ -15,4 +16,8 @@
 }
 .moreFilters {
   cursor: pointer;
+}
+
+.customSelect {
+  width: 100%;
 }
