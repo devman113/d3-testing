@@ -369,6 +369,10 @@
         
         if (document.getElementById(property.id).checked === false) blockList[category].push(itemToBlock);
       });
+
+      nodeDataArray = [];
+      generateSortedSystemSubSystem(dataSet);
+      generateViewByNodeLink();
     }
     function checkBlocking(dataElement) {
       var isBlocked = false;
@@ -455,7 +459,7 @@
           loc: `${(groupOrder+Math.ceil(currentPos/maxColumn))*200}, ${(posSwimlane['x'][subSystem]+currentPos%maxColumn)*heightUnit}`
         };
 
-        countingCollection[system][subSystem] += 1
+        countingCollection[system][subSystem] += 1;
 
         nodeDataArray.push(nodeFrom);
         myDiagram.model.addNodeData(nodeFrom);
