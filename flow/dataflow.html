@@ -48,6 +48,12 @@
     var availableOptions = [];
     var availableColumn;
 		var blockList = {};
+    var posSwimlane = {
+      x: {},
+      y: {}
+    };
+    var NO_SUBSYSTEM = 'No Subsystem';
+    var NO_SYSTEM = 'No System';
 
     function init() {
       if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
@@ -131,8 +137,8 @@
               fill: "white", // the default fill, if there is no data bound value
               portId: "", cursor: "pointer",  // the Shape is the port, not the whole Node
               // allow all kinds of links from and to this port
-              fromLinkable: true, fromLinkableSelfNode: true, fromLinkableDuplicates: true,
-              toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true
+              // fromLinkable: true, fromLinkableSelfNode: true, fromLinkableDuplicates: true,
+              // toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true
             },
             new go.Binding("fill", "color")),
           $(go.TextBlock,
@@ -288,8 +294,18 @@
     function generateSortedSystemSubSystem(dataSet) {
       var subSystems = dataSet.map(record => record['Subsystem']);
       var systems = dataSet.map(record => record['System']);
-      var sortedSubSystems = generateOrderedList(subSystems);
-      var sortedSystems = generateOrderedList(systems);
+
+      var countsOfSystem = generateOrderedList(systems)['listMap'];
+      var countsOfSubSystem = generateOrderedList(subSystems)['listMap'];
+
+      var currentPos = 0;
+      Object.keys(countsOfSubSystem).forEach(subSystem => {
+        posSwimlane['y'][subSystem === '' ? NO_SUBSYSTEM : subSystem] = currentPos;
+        currentPos += countsOfSubSystem[subSystem] > maxColumn ? maxColumn+2 : countsOfSubSystem[subSystem];
+      });
+
+      var sortedSubSystems = generateOrderedList(subSystems)['keysSorted'];
+      var sortedSystems = generateOrderedList(systems)['keysSorted'];
       createView(sortedSystems, sortedSubSystems);
     }
     function generateOrderedList(list) {
@@ -298,7 +314,7 @@
             return p;
       }, {});
       var keysSorted = Object.keys(listMap).sort(function(a,b){return listMap[b]-listMap[a]});
-      return keysSorted;
+      return { listMap, keysSorted} ;
     }
     function generateColumns(filters) {
       filters.forEach(filter => {
@@ -388,12 +404,15 @@
     var fromPosX = 100;
     var toPosX = 600;
     var dbPosX = 1000;
+    var maxColumn = 15;
+
+    var countingCollection = {};
 
     var nodeDataArray = [];
     var linkDataArray = [];
 
     function createView(sortedSystems, sortedSubSystems) {
-      console.log(sortedSystems, sortedSubSystems)
+      saveCounting(sortedSystems, sortedSubSystems)
       sortedSystems.forEach(record => {
           nodeDataArray.push({
             key: `system#${record}`, 
@@ -404,25 +423,40 @@
       });
       dataSet.forEach(singleData => {
         var groupOrder = sortedSystems.indexOf(singleData['System']);
-        addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name'], groupOrder);
-      })  
+        var subSystemOrder = sortedSubSystems.indexOf(singleData['Subsystem']);
+        if (!checkBlocking(singleData))
+        addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name'], groupOrder, subSystemOrder);
+      });  
     }
-    function addNewNode(key, group, text, groupOrder) {
-      var groupSet = myDiagram.model.nodeDataArray.filter(function(item, pos, self) {
-        return self.indexOf(item) == pos && item.group === group;
+    function saveCounting(sortedSystems, sortedSubSystems) {
+      sortedSystems.forEach(system => {
+        countingCollection[system === '' ? NO_SYSTEM : system] = {};
+        sortedSubSystems.forEach(subSystem => {
+          countingCollection[system === '' ? NO_SYSTEM : system][subSystem === '' ? NO_SUBSYSTEM : subSystem] = 0
+        });
       });
-      var posY = groupSet.length*heightUnit;
+    }
+    function addNewNode(key, group, text, groupOrder, subSystemOrder) {
       var obj = dataSet.filter(obj => obj.id === key);
       var isExisting = nodeDataArray.find( node => node.key === key );
 
       if (!isExisting) {
+        var system = obj[0]["System"];
+        var subSystem = obj[0]["Subsystem"];
+        system = system === '' ? NO_SYSTEM : system;
+        subSystem = subSystem === '' ? NO_SUBSYSTEM : subSystem;
+        var currentPos = countingCollection[system][subSystem];
+
         var nodeFrom = {
           key: key,
           text: text,
-          color: colorsArray[0],
+          color: colorsArray[subSystemOrder%3],
           group: group,
-          loc: `${groupOrder*200}, ${posY}`
+          loc: `${(groupOrder+Math.ceil(currentPos/maxColumn))*200}, ${(posSwimlane['x'][subSystem]+currentPos%maxColumn)*heightUnit}`
         };
+
+        countingCollection[system][subSystem] += 1
+
         nodeDataArray.push(nodeFrom);
         myDiagram.model.addNodeData(nodeFrom);
       }
