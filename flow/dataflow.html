@@ -56,6 +56,9 @@
     var NO_SYSTEM = 'No System';
     var FIXED_WIDTH = 200;
 
+    var sortedSubSystems = [];
+    var sortedSystems = [];
+
     function init() {
       if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
       var $ = go.GraphObject.make;  // for conciseness in defining templates
@@ -287,9 +290,9 @@
 
         dataSet = assignUniqueId(dataSet);
         configureColumnSelects(dataSet);
+
         getNodeLink();
         generateSortedSystemSubSystem(dataSet);
-
         generateViewByNodeLink();
         
       });
@@ -313,8 +316,8 @@
         currentPos += (Math.ceil(countsOfSystem[system] / maxColumn) + 1);
       });
 
-      var sortedSubSystems = generateOrderedList(subSystems)['keysSorted'];
-      var sortedSystems = generateOrderedList(systems)['keysSorted'];
+      sortedSubSystems = generateOrderedList(subSystems)['keysSorted'];
+      sortedSystems = generateOrderedList(systems)['keysSorted'];
       createView(sortedSystems, sortedSubSystems);
     }
     function generateOrderedList(list) {
@@ -379,8 +382,22 @@
         if (document.getElementById(property.id).checked === false) blockList[category].push(itemToBlock);
       });
 
-      nodeDataArray = [];
-      generateSortedSystemSubSystem(dataSet);
+      dataSet.forEach(singleData => {
+        var node = myDiagram.findNodeForKey(singleData.id);
+        if (node) {
+          if (checkBlocking(singleData)) 
+            myDiagram.remove(node);
+            // nodeDataArray = nodeDataArray.filter(function(singleNode){
+            //   return singleNode.key !== node.key;
+            // });
+            // console.log(nodeDataArray)
+        } else {
+          if (!checkBlocking(singleData))
+            addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
+        }
+      });
+
+      getNodeLink();
       generateViewByNodeLink();
     }
     function checkBlocking(dataElement) {
@@ -432,13 +449,12 @@
             text: record === "" ? "No System" : record, 
             color: colorsArray[0], 
             isGroup: true,
+            loc: `${posSwimlane['x'][record]}, 0`
           });
       });
       dataSet.forEach(singleData => {
-        var groupOrder = sortedSystems.indexOf(singleData['System']);
-        var subSystemOrder = sortedSubSystems.indexOf(singleData['Subsystem']);
         if (!checkBlocking(singleData))
-        addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name'], groupOrder, subSystemOrder);
+        addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
       });  
     }
     function saveCounting(sortedSystems, sortedSubSystems) {
@@ -449,13 +465,14 @@
         });
       });
     }
-    function addNewNode(key, group, text, groupOrder, subSystemOrder) {
+    function addNewNode(key, group, text) {
       var obj = dataSet.filter(obj => obj.id === key);
       var isExisting = nodeDataArray.find( node => node.key === key );
+      var system = obj[0]["System"];
+        var subSystem = obj[0]["Subsystem"];
+      var subSystemOrder = sortedSubSystems.indexOf(subSystem);
 
       if (!isExisting) {
-        var system = obj[0]["System"];
-        var subSystem = obj[0]["Subsystem"];
         system = system === '' ? NO_SYSTEM : system;
         subSystem = subSystem === '' ? NO_SUBSYSTEM : subSystem;
         var currentPos = countingCollection[system][subSystem];
@@ -463,7 +480,7 @@
         var nodeFrom = {
           key: key,
           text: text,
-          color: colorsArray[subSystemOrder % 8],
+          color: colorsArray[subSystemOrder % colorsArray.length],
           group: group,
           loc: `${(posSwimlane['x'][system]+Math.ceil(currentPos/maxColumn)+1)*(FIXED_WIDTH+50)}, ${(posSwimlane['y'][subSystem]+currentPos%maxColumn)*heightUnit}`
         };
