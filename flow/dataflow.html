@@ -54,6 +54,7 @@
     };
     var NO_SUBSYSTEM = 'No Subsystem';
     var NO_SYSTEM = 'No System';
+    var FIXED_WIDTH = 200;
 
     function init() {
       if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
@@ -68,7 +69,7 @@
             // allow Ctrl-G to call groupSelection()
             "commandHandler.archetypeGroupData": { text: "Group", isGroup: true, color: "blue" },
             // enable undo & redo
-            "undoManager.isEnabled": true
+            "undoManager.isEnabled": true,
           });
       // Define the appearance and behavior for Nodes:
       // First, define the shared context menu for all Nodes, Links, and Groups.
@@ -136,6 +137,8 @@
             {
               fill: "white", // the default fill, if there is no data bound value
               portId: "", cursor: "pointer",  // the Shape is the port, not the whole Node
+              width: FIXED_WIDTH,
+              figure: "Ellipse", 
               // allow all kinds of links from and to this port
               // fromLinkable: true, fromLinkableSelfNode: true, fromLinkableDuplicates: true,
               // toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true
@@ -147,7 +150,7 @@
               stroke: '#ffffff',
               margin: 4,  // make some extra space for the shape around the text
               isMultiline: false,  // don't allow newlines in text
-              editable: true  // allow in-place editing by user
+              editable: true,  // allow in-place editing by user
             },
             new go.Binding("text", "text").makeTwoWay()),  // the label shows the node data's text
           { // this tooltip Adornment is shared by all nodes
@@ -462,7 +465,7 @@
           text: text,
           color: colorsArray[subSystemOrder % 8],
           group: group,
-          loc: `${(posSwimlane['x'][system]+Math.ceil(currentPos/maxColumn)+1)*200}, ${(posSwimlane['y'][subSystem]+currentPos%maxColumn)*heightUnit}`
+          loc: `${(posSwimlane['x'][system]+Math.ceil(currentPos/maxColumn)+1)*(FIXED_WIDTH+50)}, ${(posSwimlane['y'][subSystem]+currentPos%maxColumn)*heightUnit}`
         };
 
         countingCollection[system][subSystem] += 1;
