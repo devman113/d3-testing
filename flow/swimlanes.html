@@ -43,237 +43,18 @@
       <div id="myDiagramDiv" style="border: solid 1px black; width: 1200px; height: 800px"></div>
     </div>
   </div>
+  <script src="swimlanes.js"></script>
   <script id="code">
     var dataSet = [], transformationData = [];
     var availableOptions = [];
     var availableColumn;
 		var blockList = {};
-    var posSwimlane = {
-      x: {},
-      y: {}
-    };
     var NO_SUBSYSTEM = 'No Subsystem';
     var NO_SYSTEM = 'No System';
     var FIXED_WIDTH = 200;
 
     var sortedSubSystems = [];
     var sortedSystems = [];
-
-    function init() {
-      if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
-      var $ = go.GraphObject.make;  // for conciseness in defining templates
-      myDiagram =
-        $(go.Diagram, "myDiagramDiv",  // create a Diagram for the DIV HTML element
-          {
-            // position the graph in the middle of the diagram
-            initialContentAlignment: go.Spot.Center,
-            // allow double-click in background to create a new node
-            "clickCreatingTool.archetypeNodeData": { text: "Node", color: "blue" },
-            // allow Ctrl-G to call groupSelection()
-            "commandHandler.archetypeGroupData": { text: "Group", isGroup: true, color: "blue" },
-            // enable undo & redo
-            "undoManager.isEnabled": true,
-          });
-      // Define the appearance and behavior for Nodes:
-      // First, define the shared context menu for all Nodes, Links, and Groups.
-      // To simplify this code we define a function for creating a context menu button:
-      function makeButton(text, action, visiblePredicate) {
-        return $("ContextMenuButton",
-                $(go.TextBlock, text),
-                { click: action },
-                // don't bother with binding GraphObject.visible if there's no predicate
-                visiblePredicate ? new go.Binding("visible", "", function(o, e) { return o.diagram ? visiblePredicate(o, e) : false; }).ofObject() : {});
-      }
-      // a context menu is an Adornment with a bunch of buttons in them
-      var partContextMenu =
-        $(go.Adornment, "Vertical",
-            makeButton("Properties",
-                      function(e, obj) {  // OBJ is this Button
-                        var contextmenu = obj.part;  // the Button is in the context menu Adornment
-                        var part = contextmenu.adornedPart;  // the adornedPart is the Part that the context menu adorns
-                        // now can do something with PART, or with its data, or with the Adornment (the context menu)
-                        if (part instanceof go.Link) alert(linkInfo(part.data));
-                        else if (part instanceof go.Group) alert(groupInfo(contextmenu));
-                        else alert(nodeInfo(part.data));
-                      }),
-            makeButton("Cut",
-                      function(e, obj) { e.diagram.commandHandler.cutSelection(); },
-                      function(o) { return o.diagram.commandHandler.canCutSelection(); }),
-            makeButton("Copy",
-                      function(e, obj) { e.diagram.commandHandler.copySelection(); },
-                      function(o) { return o.diagram.commandHandler.canCopySelection(); }),
-            makeButton("Paste",
-                      function(e, obj) { e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint); },
-                      function(o) { return o.diagram.commandHandler.canPasteSelection(); }),
-            makeButton("Delete",
-                      function(e, obj) { e.diagram.commandHandler.deleteSelection(); },
-                      function(o) { return o.diagram.commandHandler.canDeleteSelection(); }),
-            makeButton("Undo",
-                      function(e, obj) { e.diagram.commandHandler.undo(); },
-                      function(o) { return o.diagram.commandHandler.canUndo(); }),
-            makeButton("Redo",
-                      function(e, obj) { e.diagram.commandHandler.redo(); },
-                      function(o) { return o.diagram.commandHandler.canRedo(); }),
-            makeButton("Group",
-                      function(e, obj) { e.diagram.commandHandler.groupSelection(); },
-                      function(o) { return o.diagram.commandHandler.canGroupSelection(); }),
-            makeButton("Ungroup",
-                      function(e, obj) { e.diagram.commandHandler.ungroupSelection(); },
-                      function(o) { return o.diagram.commandHandler.canUngroupSelection(); })
-        );
-      function nodeInfo(d) {  // Tooltip info for a node data object
-        var str = "Node " + d.key + ": " + d.text + "\n";
-        if (d.group)
-          str += "member of " + d.group;
-        else
-          str += "top-level node";
-        return str;
-      }
-      // These nodes have text surrounded by a rounded rectangle
-      // whose fill color is bound to the node data.
-      // The user can drag a node by dragging its TextBlock label.
-      // Dragging from the Shape will start drawing a new link.
-      myDiagram.nodeTemplate =
-        $(go.Node, "Auto",
-          new go.Binding("location", "loc", go.Point.parse),
-          $(go.Shape, "Rectangle",
-            {
-              fill: "white", // the default fill, if there is no data bound value
-              portId: "", cursor: "pointer",  // the Shape is the port, not the whole Node
-              width: FIXED_WIDTH,
-              figure: "Ellipse", 
-              // allow all kinds of links from and to this port
-              // fromLinkable: true, fromLinkableSelfNode: true, fromLinkableDuplicates: true,
-              // toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true
-            },
-            new go.Binding("fill", "color")),
-          $(go.TextBlock,
-            {
-              font: "13px sans-serif",
-              stroke: '#ffffff',
-              margin: 4,  // make some extra space for the shape around the text
-              isMultiline: false,  // don't allow newlines in text
-              editable: true,  // allow in-place editing by user
-            },
-            new go.Binding("text", "text").makeTwoWay()),  // the label shows the node data's text
-          { // this tooltip Adornment is shared by all nodes
-            toolTip:
-              $(go.Adornment, "Auto",
-                $(go.Shape, { fill: "#FFFFCC" }),
-                $(go.TextBlock, { margin: 4 },  // the tooltip shows the result of calling nodeInfo(data)
-                  new go.Binding("text", "", nodeInfo))
-              ),
-            // this context menu Adornment is shared by all nodes
-            contextMenu: partContextMenu
-          }
-        );
-      // Define the appearance and behavior for Links:
-      function linkInfo(d) {  // Tooltip info for a link data object
-        return "Link:\nfrom " + d.from + " to " + d.to;
-      }
-      // The link shape and arrowhead have their stroke brush data bound to the "color" property
-      myDiagram.linkTemplate =
-        $(go.Link,
-          { 
-            toShortLength: 3,
-            curviness: 0,
-            selectionAdorned: true,
-            layerName: "Background",
-            reshapable: true,
-            relinkableFrom: true, 
-            // routing: go.Link.AvoidsNodes,
-            corner: 5,
-            relinkableTo: true 
-          },  // allow the user to relink existing links
-          $(go.Shape,
-            { strokeWidth: 1 },
-            new go.Binding("stroke", "color")),
-          $(go.Shape,
-            { toArrow: "Standard", stroke: null },
-            new go.Binding("fill", "color")),
-          { // this tooltip Adornment is shared by all links
-            toolTip:
-              $(go.Adornment, "Auto",
-                $(go.Shape, { fill: "#FFFFCC" }),
-                $(go.TextBlock, { margin: 4 },  // the tooltip shows the result of calling linkInfo(data)
-                  new go.Binding("text", "", linkInfo))
-              ),
-            // the same context menu Adornment is shared by all links
-            contextMenu: partContextMenu
-          }
-        );
-      // Define the appearance and behavior for Groups:
-      function groupInfo(adornment) {  // takes the tooltip or context menu, not a group node data object
-        var g = adornment.adornedPart;  // get the Group that the tooltip adorns
-        var mems = g.memberParts.count;
-        var links = 0;
-        g.memberParts.each(function(part) {
-          if (part instanceof go.Link) links++;
-        });
-        return "Group " + g.data.key + ": " + g.data.text + "\n" + mems + " members including " + links + " links";
-      }
-      // Groups consist of a title in the color given by the group node data
-      // above a translucent gray rectangle surrounding the member parts
-      myDiagram.groupTemplate =
-        $(go.Group, "Vertical",
-          { selectionObjectName: "PANEL",  // selection handle goes around shape, not label
-            avoidable: false,
-            ungroupable: true },  // enable Ctrl-Shift-G to ungroup a selected Group
-          $(go.TextBlock,
-            {
-              font: "bold 19px sans-serif",
-              isMultiline: false,  // don't allow newlines in text
-              editable: true  // allow in-place editing by user
-            },
-            new go.Binding("text", "text").makeTwoWay(),
-            new go.Binding("stroke", "color")),
-          $(go.Panel, "Auto",
-            { name: "PANEL" },
-            $(go.Shape, "Rectangle",  // the rectangular shape around the members
-              {
-                fill: "rgba(128,128,128,0.2)", stroke: "gray", strokeWidth: 3,
-                portId: "", cursor: "pointer",  // the Shape is the port, not the whole Node
-                fromLinkable: true, fromLinkableSelfNode: true, fromLinkableDuplicates: true,
-                toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true
-              }),
-            $(go.Placeholder, { margin: 20, background: "transparent" })  // represents where the members are
-          ),
-          { // this tooltip Adornment is shared by all groups
-            toolTip:
-              $(go.Adornment, "Auto",
-                $(go.Shape, { fill: "#FFFFCC" }),
-                $(go.TextBlock, { margin: 4 },
-                  // bind to tooltip, not to Group.data, to allow access to Group properties
-                  new go.Binding("text", "", groupInfo).ofObject())
-              ),
-            // the same context menu Adornment is shared by all groups
-            contextMenu: partContextMenu
-          }
-        );
-      // Define the behavior for the Diagram background:
-      function diagramInfo(model) {  // Tooltip info for the diagram's model
-        return "Model:\n" + model.nodeDataArray.length + " nodes, " + model.linkDataArray.length + " links";
-      }
-      // provide a tooltip for the background of the Diagram, when not over any Part
-      myDiagram.toolTip =
-        $(go.Adornment, "Auto",
-          $(go.Shape, { fill: "#FFFFCC" }),
-          $(go.TextBlock, { margin: 4 },
-            new go.Binding("text", "", diagramInfo))
-        );
-      // provide a context menu for the background of the Diagram, when not over any Part
-      myDiagram.contextMenu =
-        $(go.Adornment, "Vertical",
-            makeButton("Paste",
-                      function(e, obj) { e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint); },
-                      function(o) { return o.diagram.commandHandler.canPasteSelection(); }),
-            makeButton("Undo",
-                      function(e, obj) { e.diagram.commandHandler.undo(); },
-                      function(o) { return o.diagram.commandHandler.canUndo(); }),
-            makeButton("Redo",
-                      function(e, obj) { e.diagram.commandHandler.redo(); },
-                      function(o) { return o.diagram.commandHandler.canRedo(); })
-        );
 
     // Create the Diagram's Model:
     var dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
@@ -296,7 +77,6 @@
         generateViewByNodeLink();
         
       });
-    }
     function generateSortedSystemSubSystem(dataSet) {
       var subSystems = dataSet.map(record => record['Subsystem']);
       var systems = dataSet.map(record => record['System']);
@@ -304,29 +84,9 @@
       var countsOfSystem = generateOrderedList(systems)['listMap'];
       var countsOfSubSystem = generateOrderedList(subSystems)['listMap'];
 
-      var currentPos = 0;
-      Object.keys(countsOfSubSystem).forEach(subSystem => {
-        posSwimlane['y'][subSystem === '' ? NO_SUBSYSTEM : subSystem] = currentPos;
-        currentPos += countsOfSubSystem[subSystem] > maxColumn ? maxColumn+2 : countsOfSubSystem[subSystem];
-      });
-
-      currentPos = 0;
-      Object.keys(countsOfSystem).forEach(system => {
-        posSwimlane['x'][system === '' ? NO_SYSTEM : system] = currentPos;
-        currentPos += (Math.ceil(countsOfSystem[system] / maxColumn) + 1);
-      });
-
       sortedSubSystems = generateOrderedList(subSystems)['keysSorted'];
       sortedSystems = generateOrderedList(systems)['keysSorted'];
       createView(sortedSystems, sortedSubSystems);
-    }
-    function generateOrderedList(list) {
-      var listMap = list.reduce(function (p, c) {
-            p[c] = (p[c] || 0) + 1;
-            return p;
-      }, {});
-      var keysSorted = Object.keys(listMap).sort(function(a,b){return listMap[b]-listMap[a]});
-      return { listMap, keysSorted} ;
     }
     function generateColumns(filters) {
       filters.forEach(filter => {
@@ -348,24 +108,7 @@
       }
       generateFilterModalContent(availableOptions, columnName);
     }
-    function generateFilterModalContent(availableOptions, columnName) {
-      var modalContent = '<div class="filterOptionContainer">';
-      availableOptions.forEach((option, i) => {
-        var col = columnName.replace(/\s/g, '');
-        var elementId = `${col}#${i}`;
-        var isChecked = "checked";
-        if (blockList[columnName]) {
-          if (blockList[columnName].indexOf(option) > -1) isChecked = "unchecked";
-        }
-        if (option === "") option = `No ${columnName}`;
-        modalContent += '<div><input type="checkbox" class="eachProperty" id="checkboxFilter#'+elementId+'" onChange="filterOptionChange()" '+isChecked+' />';
-        modalContent += '<label class="columnLabel" id="labelFilter#'+elementId+'" for="checkboxFilter#'+elementId+'">'+option+'</label></div>';
-      });
-      modalContent += '</div>';
-      modal.setContent(modalContent);
-      modal.open(); 
-      return modalContent;
-    }
+
     function filterOptionChange() {
       var category = availableColumn;
       blockList[category] = [];
@@ -382,23 +125,23 @@
         if (document.getElementById(property.id).checked === false) blockList[category].push(itemToBlock);
       });
 
-      dataSet.forEach(singleData => {
-        var node = myDiagram.findNodeForKey(singleData.id);
-        if (node) {
-          if (checkBlocking(singleData)) 
-            myDiagram.remove(node);
+      // dataSet.forEach(singleData => {
+      //   var node = myDiagram.findNodeForKey(singleData.id);
+      //   if (node) {
+      //     if (checkBlocking(singleData)) 
+      //       myDiagram.remove(node);
             // nodeDataArray = nodeDataArray.filter(function(singleNode){
             //   return singleNode.key !== node.key;
             // });
             // console.log(nodeDataArray)
-        } else {
-          if (!checkBlocking(singleData))
-            addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
-        }
-      });
+      //   } else {
+      //     if (!checkBlocking(singleData))
+      //       addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
+      //   }
+      // });
 
-      getNodeLink();
-      generateViewByNodeLink();
+      // getNodeLink();
+      // generateViewByNodeLink();
     }
     function checkBlocking(dataElement) {
       var isBlocked = false;
@@ -428,94 +171,94 @@
     });   
 
     // --- Node & Link manipulation ---
-    var colorsArray = ["#FF5252","#69B40F","#EC1D25","#C8125C","#008FC8","#10218B","#134B24","#737373"];
-    var maxFrom = 1000, maxTo = 2000;
-    var heightUnit = 40;
-    var fromPosX = 100;
-    var toPosX = 600;
-    var dbPosX = 1000;
-    var maxColumn = 15;
+    // var colorsArray = ["#FF5252","#69B40F","#EC1D25","#C8125C","#008FC8","#10218B","#134B24","#737373"];
+    // var maxFrom = 1000, maxTo = 2000;
+    // var heightUnit = 40;
+    // var fromPosX = 100;
+    // var toPosX = 600;
+    // var dbPosX = 1000;
+    // var maxColumn = 15;
 
-    var countingCollection = {};
+    // var countingCollection = {};
 
-    var nodeDataArray = [];
-    var linkDataArray = [];
+    // var nodeDataArray = [];
+    // var linkDataArray = [];
 
-    function createView(sortedSystems, sortedSubSystems) {
-      saveCounting(sortedSystems, sortedSubSystems)
-      sortedSystems.forEach(record => {
-          nodeDataArray.push({
-            key: `system#${record}`, 
-            text: record === "" ? "No System" : record, 
-            color: colorsArray[0], 
-            isGroup: true,
-            loc: `${posSwimlane['x'][record]}, 0`
-          });
-      });
-      dataSet.forEach(singleData => {
-        if (!checkBlocking(singleData))
-        addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
-      });  
-    }
-    function saveCounting(sortedSystems, sortedSubSystems) {
-      sortedSystems.forEach(system => {
-        countingCollection[system === '' ? NO_SYSTEM : system] = {};
-        sortedSubSystems.forEach(subSystem => {
-          countingCollection[system === '' ? NO_SYSTEM : system][subSystem === '' ? NO_SUBSYSTEM : subSystem] = 0
-        });
-      });
-    }
-    function addNewNode(key, group, text) {
-      var obj = dataSet.filter(obj => obj.id === key);
-      var isExisting = nodeDataArray.find( node => node.key === key );
-      var system = obj[0]["System"];
-        var subSystem = obj[0]["Subsystem"];
-      var subSystemOrder = sortedSubSystems.indexOf(subSystem);
+    // function createView(sortedSystems, sortedSubSystems) {
+    //   saveCounting(sortedSystems, sortedSubSystems)
+    //   sortedSystems.forEach(record => {
+    //       nodeDataArray.push({
+    //         key: `system#${record}`, 
+    //         text: record === "" ? "No System" : record, 
+    //         color: colorsArray[0], 
+    //         isGroup: true,
+    //         loc: `${posSwimlane['x'][record]}, 0`
+    //       });
+    //   });
+    //   dataSet.forEach(singleData => {
+    //     if (!checkBlocking(singleData))
+    //     addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
+    //   });  
+    // }
+    // function saveCounting(sortedSystems, sortedSubSystems) {
+    //   sortedSystems.forEach(system => {
+    //     countingCollection[system === '' ? NO_SYSTEM : system] = {};
+    //     sortedSubSystems.forEach(subSystem => {
+    //       countingCollection[system === '' ? NO_SYSTEM : system][subSystem === '' ? NO_SUBSYSTEM : subSystem] = 0
+    //     });
+    //   });
+    // }
+    // function addNewNode(key, group, text) {
+    //   var obj = dataSet.filter(obj => obj.id === key);
+    //   var isExisting = nodeDataArray.find( node => node.key === key );
+    //   var system = obj[0]["System"];
+    //     var subSystem = obj[0]["Subsystem"];
+    //   var subSystemOrder = sortedSubSystems.indexOf(subSystem);
 
-      if (!isExisting) {
-        system = system === '' ? NO_SYSTEM : system;
-        subSystem = subSystem === '' ? NO_SUBSYSTEM : subSystem;
-        var currentPos = countingCollection[system][subSystem];
+    //   if (!isExisting) {
+    //     system = system === '' ? NO_SYSTEM : system;
+    //     subSystem = subSystem === '' ? NO_SUBSYSTEM : subSystem;
+    //     var currentPos = countingCollection[system][subSystem];
 
-        var nodeFrom = {
-          key: key,
-          text: text,
-          color: colorsArray[subSystemOrder % colorsArray.length],
-          group: group,
-          loc: `${(posSwimlane['x'][system]+Math.ceil(currentPos/maxColumn)+1)*(FIXED_WIDTH+50)}, ${(posSwimlane['y'][subSystem]+currentPos%maxColumn)*heightUnit}`
-        };
+    //     var nodeFrom = {
+    //       key: key,
+    //       text: text,
+    //       color: colorsArray[subSystemOrder % colorsArray.length],
+    //       group: group,
+    //       loc: `${(posSwimlane['x'][system]+Math.ceil(currentPos/maxColumn)+1)*(FIXED_WIDTH+50)}, ${(posSwimlane['y'][subSystem]+currentPos%maxColumn)*heightUnit}`
+    //     };
 
-        countingCollection[system][subSystem] += 1;
+    //     countingCollection[system][subSystem] += 1;
 
-        nodeDataArray.push(nodeFrom);
-        myDiagram.model.addNodeData(nodeFrom);
-      }
-    }
-    function insertConnection() {
-      var fromIndex = $('#fromColumns').val();
-      var toIndex = $('#toColumns').val();
-      addNewLink(fromIndex, toIndex);
-      if (document.getElementById("checkBilateral").checked === true)
-      addNewLink(toIndex, fromIndex);
-    }
-    function addNewLink(fromIndex, toIndex) {
-      myDiagram.model.addLinkData({ "from": fromIndex, "to":  toIndex });
-    }
-    function generateViewByNodeLink() {
-      myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
-    }
-    function getNodeLink() {
-      transformationData.forEach((eachTransform) => {      
-        linkDataArray.push({
-          from: eachTransform.from,
-          to: eachTransform.to
-        });
-      });
-      return {
-        nodeDataArray: nodeDataArray,
-        linkDataArray: linkDataArray
-      }
-    }
+    //     nodeDataArray.push(nodeFrom);
+    //     myDiagram.model.addNodeData(nodeFrom);
+    //   }
+    // }
+    // function insertConnection() {
+    //   var fromIndex = $('#fromColumns').val();
+    //   var toIndex = $('#toColumns').val();
+    //   addNewLink(fromIndex, toIndex);
+    //   if (document.getElementById("checkBilateral").checked === true)
+    //   addNewLink(toIndex, fromIndex);
+    // }
+    // function addNewLink(fromIndex, toIndex) {
+    //   myDiagram.model.addLinkData({ "from": fromIndex, "to":  toIndex });
+    // }
+    // function generateViewByNodeLink() {
+    //   myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+    // }
+    // function getNodeLink() {
+    //   transformationData.forEach((eachTransform) => {      
+    //     linkDataArray.push({
+    //       from: eachTransform.from,
+    //       to: eachTransform.to
+    //     });
+    //   });
+    //   return {
+    //     nodeDataArray: nodeDataArray,
+    //     linkDataArray: linkDataArray
+    //   }
+    // }
     // ----- Modal Configuration -----
     var modal = new tingle.modal({
       footer: true,
@@ -540,6 +283,33 @@
       // here goes some logic
       modal.close();
     });
+    function generateFilterModalContent(availableOptions, columnName) {
+      var modalContent = '<div class="filterOptionContainer">';
+      availableOptions.forEach((option, i) => {
+        var col = columnName.replace(/\s/g, '');
+        var elementId = `${col}#${i}`;
+        var isChecked = "checked";
+        if (blockList[columnName]) {
+          if (blockList[columnName].indexOf(option) > -1) isChecked = "unchecked";
+        }
+        if (option === "") option = `No ${columnName}`;
+        modalContent += '<div><input type="checkbox" class="eachProperty" id="checkboxFilter#'+elementId+'" onChange="filterOptionChange()" '+isChecked+' />';
+        modalContent += '<label class="columnLabel" id="labelFilter#'+elementId+'" for="checkboxFilter#'+elementId+'">'+option+'</label></div>';
+      });
+      modalContent += '</div>';
+      modal.setContent(modalContent);
+      modal.open(); 
+      return modalContent;
+    }
+    // ---- helpers -----
+    function generateOrderedList(list) {
+      var listMap = list.reduce(function (p, c) {
+            p[c] = (p[c] || 0) + 1;
+            return p;
+      }, {});
+      var keysSorted = Object.keys(listMap).sort(function(a,b){return listMap[b]-listMap[a]});
+      return { listMap, keysSorted} ;
+    }
   </script>
 </body>
 </html>
