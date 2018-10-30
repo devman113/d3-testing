@@ -429,6 +429,21 @@
     ]);
     // force all lanes' layouts to be performed
     relayoutLanes();
+    dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
+    dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
+      
+    jQuery.when(dataSource, dataTransformation)
+      .done(function(dataSourceResult, dataTransformationResult) {
+        //data is the JSON string
+        transformationData = dataTransformationResult[0]['dataTransformation']['data'];
+        dataSet = dataSourceResult[0]['columns'];
+        var filters = Object.keys(dataSet[0]);
+
+        generateColumns(filters);
+        generateOptionsPrograms(dataSet);
+        generateSortedSystemSubSystem(dataSet);
+        
+    });
   }  // end init
 
   // Show the diagram's model in JSON format
@@ -439,4 +454,37 @@
   function load() {
     myDiagram.model = go.Model.fromJson(document.getElementById("mySavedModel").value);
     myDiagram.delayInitialization(relayoutDiagram);
+  }
+
+  // ----- Data population -----
+  var nodeDataArray = [];
+  var linkDataArray = [];
+  
+  function createInitView(sortedSystems, sortedSubSystems) {
+    sortedSystems.forEach(record => {
+        nodeDataArray.push({
+          key: `system#${record}`, 
+          text: record === "" ? "No System" : record, 
+          isGroup: true,
+        });
+    });
+    sortedSubSystems.forEach(record => {
+      nodeDataArray.push({
+        key: `subSystem#${record["subSystem"]}`, 
+        text: record["subSystem"] === "" ? "No Subsystem" : `subSystem#${record["subSystem"]}`, 
+        group: `system#${record["System"]}`,
+        isGroup: true
+      });
+    });
+
+    nodeDataArray = nodeDataArray.filter((thing, index, self) =>
+      index === self.findIndex((t) => (
+        t.key === thing.key
+      ))
+    );
+    generateView();
+  }
+  function generateView() {
+    myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+    relayoutLanes();
   }

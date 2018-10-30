@@ -47,6 +47,7 @@
       <textarea id="mySavedModel" style="width:100%;height:300px"></textarea>
     </div>
   </div>
+  <script src="swimlanes.js"></script>
   <script id="code">
     var dataSet = [];
     var transformationData = [];
@@ -60,21 +61,9 @@
     var sortedSystems = [];
 
     // Create the Diagram's Model:
-    var dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
-    var dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
-      
-    jQuery.when(dataSource, dataTransformation)
-      .done(function(dataSourceResult, dataTransformationResult) {
-        //data is the JSON string
-        transformationData = dataTransformationResult[0]['dataTransformation']['data'];
-        dataSet = dataSourceResult[0]['columns'];
-        var filters = Object.keys(dataSet[0]);
-
-        generateColumns(filters);
-        generateOptionsPrograms(dataSet);
-        generateSortedSystemSubSystem(dataSet);
-        
-      });
+    var dataSource;
+    var dataTransformation;
+    
     function generateColumns(filters) {
       filters.forEach(filter => {
         var content = `<div class="singleColumnContainer">`;
@@ -93,14 +82,15 @@
       });
     }
     function generateSortedSystemSubSystem(dataSet) {
-      var subSystems = dataSet.map(record => record['Subsystem']);
+      var subSystems = dataSet.map(record => { 
+        return {
+          subSystem: record['Subsystem'],
+          System: record['System']
+        }
+      });
       var systems = dataSet.map(record => record['System']);
 
-      var countsOfSystem = generateOrderedList(systems)['listMap'];
-      var countsOfSubSystem = generateOrderedList(subSystems)['listMap'];
-
-      sortedSubSystems = generateOrderedList(subSystems)['keysSorted'];
-      sortedSystems = generateOrderedList(systems)['keysSorted'];
+      createInitView(systems, subSystems);
     }
     function generateFilterOptions(columnName) {
       availableOptions = [];
@@ -192,16 +182,6 @@
       // here goes some logic
       modal.close();
     });
-    // ---- helpers -----
-    function generateOrderedList(list) {
-      var listMap = list.reduce(function (p, c) {
-            p[c] = (p[c] || 0) + 1;
-            return p;
-      }, {});
-      var keysSorted = Object.keys(listMap).sort(function(a,b){return listMap[b]-listMap[a]});
-      return { listMap, keysSorted} ;
-    }
   </script>
-  <script src="swimlanes.js"></script>
 </body>
 </html>
