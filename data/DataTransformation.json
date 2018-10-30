@@ -1,14 +1,9 @@
 {    
     "dataTransformation": {
         "data": [
-            { "from": "record#1", "to": "record#2" },
-            { "from": "record#1", "to": "record#4" },
-            { "from": "record#3", "to": "record#4" },
-            { "from": "record#5", "to": "record#8" },
-            { "from": "record#6", "to": "record#4" },
-            { "from": "record#4", "to": "record#6" },
-            { "from": "record#3", "to": "record#7" },
-            { "from": "record#7", "to": "record#3" }
+            { "from": "AtsToOrderGenProtocol", "to": "BloombergRealTimeDataBridge" },
+            { "from": "ClockWatch", "to": "CloudController" },
+            { "from": "ConMsgNET", "to": "DatabaseExceptionReports" }
         ]
     }
 }

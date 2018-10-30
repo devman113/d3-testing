@@ -219,7 +219,7 @@
       $(go.Node, "Auto",
         new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
         $(go.Shape, "Rectangle",
-          { fill: "white", portId: "", cursor: "pointer", fromLinkable: true, toLinkable: true }),
+          { fill: "green", width: 200, portId: "", cursor: "pointer", fromLinkable: true, toLinkable: true }),
         $(go.TextBlock, { margin: 5 },
           new go.Binding("text", "key")),
         { dragComputation: stayInGroup } // limit dragging of Nodes to stay within the containing Group, defined above
@@ -428,7 +428,6 @@
       { from: "fourC", to: "fourD" }
     ]);
     // force all lanes' layouts to be performed
-    relayoutLanes();
     dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
     dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
       
@@ -444,6 +443,7 @@
         generateSortedSystemSubSystem(dataSet);
         
     });
+    relayoutLanes();
   }  // end init
 
   // Show the diagram's model in JSON format
@@ -471,20 +471,44 @@
     sortedSubSystems.forEach(record => {
       nodeDataArray.push({
         key: `subSystem#${record["subSystem"]}`, 
-        text: record["subSystem"] === "" ? "No Subsystem" : `subSystem#${record["subSystem"]}`, 
+        text: record["subSystem"] === "" ? "No Subsystem" : `${record["subSystem"]}`, 
         group: `system#${record["System"]}`,
         isGroup: true
       });
     });
 
-    nodeDataArray = nodeDataArray.filter((thing, index, self) =>
+    nodeDataArray = removeDuplication(nodeDataArray);
+
+    dataSet.forEach(singleData => {
+      addNewNode(`subSystem#${singleData['Subsystem']}`, singleData['Program Name']);
+    });  
+
+    transformationData.forEach(eachTransform => {
+      linkDataArray.push({
+        from: eachTransform.from,
+        to: eachTransform.to
+      });
+    });
+
+    generateView();
+  }
+  function addNewNode(group, program) {
+    var newNode = {
+      key: program,
+      group: group
+    };
+    nodeDataArray.push(newNode);
+    nodeDataArray = removeDuplication(nodeDataArray);
+  }
+  function removeDuplication(source) {
+    return source.filter((thing, index, self) =>
       index === self.findIndex((t) => (
         t.key === thing.key
       ))
     );
-    generateView();
   }
   function generateView() {
+    console.log(linkDataArray);
     myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
     relayoutLanes();
   }
