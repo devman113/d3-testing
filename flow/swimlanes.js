@@ -381,52 +381,6 @@
         $(go.Shape, { toArrow: "Standard" })
       );
 
-    // define some sample graphs in some of the lanes
-    myDiagram.model = new go.GraphLinksModel(
-    [ // node data
-      { key: "Pool1", text: "Pool", isGroup: true, category: "Pool" },
-      { key: "Pool2", text: "Pool2", isGroup: true, category: "Pool" },
-      { key: "Lane1", text: "Lane1", isGroup: true, group: "Pool1", color: "lightblue" },
-      { key: "Lane2", text: "Lane2", isGroup: true, group: "Pool1", color: "lightgreen" },
-      { key: "Lane3", text: "Lane3", isGroup: true, group: "Pool1", color: "lightyellow" },
-      { key: "Lane4", text: "Lane4", isGroup: true, group: "Pool1", color: "orange" },
-      { key: "oneA", group: "Lane1" },
-      { key: "oneB", group: "Lane1" },
-      { key: "oneC", group: "Lane1" },
-      { key: "oneD", group: "Lane1" },
-      { key: "twoA", group: "Lane2" },
-      { key: "twoB", group: "Lane2" },
-      { key: "twoC", group: "Lane2" },
-      { key: "twoD", group: "Lane2" },
-      { key: "twoE", group: "Lane2" },
-      { key: "twoF", group: "Lane2" },
-      { key: "twoG", group: "Lane2" },
-      { key: "fourA", group: "Lane4" },
-      { key: "fourB", group: "Lane4" },
-      { key: "fourC", group: "Lane4" },
-      { key: "fourD", group: "Lane4" },
-      { key: "Lane5", text: "Lane5", isGroup: true, group: "Pool2", color: "lightyellow" },
-      { key: "Lane6", text: "Lane6", isGroup: true, group: "Pool2", color: "lightgreen" },
-      { key: "fiveA", group: "Lane5" },
-      { key: "sixA", group: "Lane6" }
-    ],
-    [ // link data
-      { from: "oneA", to: "oneB" },
-      { from: "oneA", to: "oneC" },
-      { from: "oneB", to: "oneD" },
-      { from: "oneC", to: "oneD" },
-      { from: "twoA", to: "twoB" },
-      { from: "twoA", to: "twoC" },
-      { from: "twoA", to: "twoF" },
-      { from: "twoB", to: "twoD" },
-      { from: "twoC", to: "twoD" },
-      { from: "twoD", to: "twoG" },
-      { from: "twoE", to: "twoG" },
-      { from: "twoF", to: "twoG" },
-      { from: "fourA", to: "fourB" },
-      { from: "fourB", to: "fourC" },
-      { from: "fourC", to: "fourD" }
-    ]);
     // force all lanes' layouts to be performed
     dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
     dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
