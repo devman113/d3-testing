@@ -50,3 +50,7 @@
 input[class=eachProperty] + label {
   display: flex;
 }
+
+.columnLabel {
+  margin-top: 1px;
+}

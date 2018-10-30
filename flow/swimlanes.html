@@ -38,9 +38,13 @@
           <label class="columnLabel" id="label#Bilateral" for="checkBilateral">Bilateral</label>
         </div>
         <button onclick="insertConnection()">Insert</button>
+        <button onclick="save()">Save</button>
+        <button onclick="load()">Load</button>
+        <button onclick="relayoutLanes()">Layout</button>
       </div>
       <br />
       <div id="myDiagramDiv" style="border: solid 1px black; width: 1200px; height: 800px"></div>
+      <textarea id="mySavedModel" style="width:100%;height:300px"></textarea>
     </div>
   </div>
   <script id="code">
