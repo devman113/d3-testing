@@ -43,7 +43,6 @@
       <div id="myDiagramDiv" style="border: solid 1px black; width: 1200px; height: 800px"></div>
     </div>
   </div>
-  <script src="swimlanes.js"></script>
   <script id="code">
     var dataSet = [], transformationData = [];
     var availableOptions = [];
@@ -65,18 +64,30 @@
         //data is the JSON string
         transformationData = dataTransformationResult[0]['dataTransformation']['data'];
         dataSet = dataSourceResult[0]['columns'];
-
         var filters = Object.keys(dataSet[0]);
+
         generateColumns(filters);
-
-        dataSet = assignUniqueId(dataSet);
-        configureColumnSelects(dataSet);
-
-        getNodeLink();
+        generateOptionsPrograms(dataSet);
         generateSortedSystemSubSystem(dataSet);
-        generateViewByNodeLink();
         
       });
+    function generateColumns(filters) {
+      filters.forEach(filter => {
+        var content = `<div class="singleColumnContainer">`;
+        content += `<input type="checkbox" checked="true" class="checkList" id="filtersListcheck#${filter}">`;
+        content += `<label class="columnLabel" id="filtersListlabel#${filter}" for="filtersListcheck#${filter}">${filter}</label>`
+        content += `<span class="moreFilters" onclick="generateFilterOptions('`+filter+`')">&gt;</span></div>`;
+        $('#filtersList').append(content);
+      });
+    }
+    function generateOptionsPrograms(dataSet) {
+      dataSet.forEach(eachRecord => {
+        $('.customSelect').append($('<option>', {
+            value: eachRecord['Program Name'],
+            text: eachRecord['Program Name']
+        }));
+      });
+    }
     function generateSortedSystemSubSystem(dataSet) {
       var subSystems = dataSet.map(record => record['Subsystem']);
       var systems = dataSet.map(record => record['System']);
@@ -86,16 +97,6 @@
 
       sortedSubSystems = generateOrderedList(subSystems)['keysSorted'];
       sortedSystems = generateOrderedList(systems)['keysSorted'];
-      createView(sortedSystems, sortedSubSystems);
-    }
-    function generateColumns(filters) {
-      filters.forEach(filter => {
-        var content = `<div class="singleColumnContainer">`;
-        content += `<input type="checkbox" checked="true" class="checkList" id="filtersListcheck#${filter}">`;
-        content += `<label class="columnLabel" id="filtersListlabel#${filter}" for="filtersListcheck#${filter}">${filter}</label>`
-        content += `<span class="moreFilters" onclick="generateFilterOptions('`+filter+`')">&gt;</span></div>`;
-        $('#filtersList').append(content);
-      });
     }
     function generateFilterOptions(columnName) {
       availableOptions = [];
@@ -108,8 +109,8 @@
       }
       generateFilterModalContent(availableOptions, columnName);
     }
-
-    function filterOptionChange() {
+    // ----- blockList -----
+    function blockListUpdate() {
       var category = availableColumn;
       blockList[category] = [];
       var properties  = document.getElementsByClassName("eachProperty");
@@ -124,24 +125,6 @@
         
         if (document.getElementById(property.id).checked === false) blockList[category].push(itemToBlock);
       });
-
-      // dataSet.forEach(singleData => {
-      //   var node = myDiagram.findNodeForKey(singleData.id);
-      //   if (node) {
-      //     if (checkBlocking(singleData)) 
-      //       myDiagram.remove(node);
-            // nodeDataArray = nodeDataArray.filter(function(singleNode){
-            //   return singleNode.key !== node.key;
-            // });
-            // console.log(nodeDataArray)
-      //   } else {
-      //     if (!checkBlocking(singleData))
-      //       addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
-      //   }
-      // });
-
-      // getNodeLink();
-      // generateViewByNodeLink();
     }
     function checkBlocking(dataElement) {
       var isBlocked = false;
@@ -155,110 +138,32 @@
       });
       return isBlocked;
     }
-    function assignUniqueId(dataSet) {
-      return dataSet.map((eachRecord, i) =>  { eachRecord['id'] = `record#${i}`; return eachRecord; });
-    }
-    function configureColumnSelects(dataSet) {
-      dataSet.forEach(eachRecord => {
-        $('.customSelect').append($('<option>', {
-            value: eachRecord['id'],
-            text: eachRecord['Program Name']
-        }));
+    // Modal content
+    function generateFilterModalContent(availableOptions, columnName) {
+      var modalContent = '<div class="filterOptionContainer">';
+      availableOptions.forEach((option, i) => {
+        var col = columnName.replace(/\s/g, '');
+        var elementId = `${col}#${i}`;
+        var isChecked = "checked";
+        if (blockList[columnName]) {
+          if (blockList[columnName].indexOf(option) > -1) isChecked = "unchecked";
+        }
+        if (option === "") option = `No ${columnName}`;
+        modalContent += '<div><input type="checkbox" class="eachProperty" id="checkboxFilter#'+elementId+'" onChange="blockListUpdate()" '+isChecked+' />';
+        modalContent += '<label class="columnLabel" id="labelFilter#'+elementId+'" for="checkboxFilter#'+elementId+'">'+option+'</label></div>';
       });
+      modalContent += '</div>';
+      modal.setContent(modalContent);
+      modal.open(); 
+      return modalContent;
     }
+
+    // ----- Select2 init -----
+
     $(document).ready(function() {
       $('.customSelect').select2();
     });   
 
-    // --- Node & Link manipulation ---
-    // var colorsArray = ["#FF5252","#69B40F","#EC1D25","#C8125C","#008FC8","#10218B","#134B24","#737373"];
-    // var maxFrom = 1000, maxTo = 2000;
-    // var heightUnit = 40;
-    // var fromPosX = 100;
-    // var toPosX = 600;
-    // var dbPosX = 1000;
-    // var maxColumn = 15;
-
-    // var countingCollection = {};
-
-    // var nodeDataArray = [];
-    // var linkDataArray = [];
-
-    // function createView(sortedSystems, sortedSubSystems) {
-    //   saveCounting(sortedSystems, sortedSubSystems)
-    //   sortedSystems.forEach(record => {
-    //       nodeDataArray.push({
-    //         key: `system#${record}`, 
-    //         text: record === "" ? "No System" : record, 
-    //         color: colorsArray[0], 
-    //         isGroup: true,
-    //         loc: `${posSwimlane['x'][record]}, 0`
-    //       });
-    //   });
-    //   dataSet.forEach(singleData => {
-    //     if (!checkBlocking(singleData))
-    //     addNewNode(singleData.id, `system#${singleData['System']}`, singleData['Program Name']);
-    //   });  
-    // }
-    // function saveCounting(sortedSystems, sortedSubSystems) {
-    //   sortedSystems.forEach(system => {
-    //     countingCollection[system === '' ? NO_SYSTEM : system] = {};
-    //     sortedSubSystems.forEach(subSystem => {
-    //       countingCollection[system === '' ? NO_SYSTEM : system][subSystem === '' ? NO_SUBSYSTEM : subSystem] = 0
-    //     });
-    //   });
-    // }
-    // function addNewNode(key, group, text) {
-    //   var obj = dataSet.filter(obj => obj.id === key);
-    //   var isExisting = nodeDataArray.find( node => node.key === key );
-    //   var system = obj[0]["System"];
-    //     var subSystem = obj[0]["Subsystem"];
-    //   var subSystemOrder = sortedSubSystems.indexOf(subSystem);
-
-    //   if (!isExisting) {
-    //     system = system === '' ? NO_SYSTEM : system;
-    //     subSystem = subSystem === '' ? NO_SUBSYSTEM : subSystem;
-    //     var currentPos = countingCollection[system][subSystem];
-
-    //     var nodeFrom = {
-    //       key: key,
-    //       text: text,
-    //       color: colorsArray[subSystemOrder % colorsArray.length],
-    //       group: group,
-    //       loc: `${(posSwimlane['x'][system]+Math.ceil(currentPos/maxColumn)+1)*(FIXED_WIDTH+50)}, ${(posSwimlane['y'][subSystem]+currentPos%maxColumn)*heightUnit}`
-    //     };
-
-    //     countingCollection[system][subSystem] += 1;
-
-    //     nodeDataArray.push(nodeFrom);
-    //     myDiagram.model.addNodeData(nodeFrom);
-    //   }
-    // }
-    // function insertConnection() {
-    //   var fromIndex = $('#fromColumns').val();
-    //   var toIndex = $('#toColumns').val();
-    //   addNewLink(fromIndex, toIndex);
-    //   if (document.getElementById("checkBilateral").checked === true)
-    //   addNewLink(toIndex, fromIndex);
-    // }
-    // function addNewLink(fromIndex, toIndex) {
-    //   myDiagram.model.addLinkData({ "from": fromIndex, "to":  toIndex });
-    // }
-    // function generateViewByNodeLink() {
-    //   myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
-    // }
-    // function getNodeLink() {
-    //   transformationData.forEach((eachTransform) => {      
-    //     linkDataArray.push({
-    //       from: eachTransform.from,
-    //       to: eachTransform.to
-    //     });
-    //   });
-    //   return {
-    //     nodeDataArray: nodeDataArray,
-    //     linkDataArray: linkDataArray
-    //   }
-    // }
     // ----- Modal Configuration -----
     var modal = new tingle.modal({
       footer: true,
@@ -283,24 +188,6 @@
       // here goes some logic
       modal.close();
     });
-    function generateFilterModalContent(availableOptions, columnName) {
-      var modalContent = '<div class="filterOptionContainer">';
-      availableOptions.forEach((option, i) => {
-        var col = columnName.replace(/\s/g, '');
-        var elementId = `${col}#${i}`;
-        var isChecked = "checked";
-        if (blockList[columnName]) {
-          if (blockList[columnName].indexOf(option) > -1) isChecked = "unchecked";
-        }
-        if (option === "") option = `No ${columnName}`;
-        modalContent += '<div><input type="checkbox" class="eachProperty" id="checkboxFilter#'+elementId+'" onChange="filterOptionChange()" '+isChecked+' />';
-        modalContent += '<label class="columnLabel" id="labelFilter#'+elementId+'" for="checkboxFilter#'+elementId+'">'+option+'</label></div>';
-      });
-      modalContent += '</div>';
-      modal.setContent(modalContent);
-      modal.open(); 
-      return modalContent;
-    }
     // ---- helpers -----
     function generateOrderedList(list) {
       var listMap = list.reduce(function (p, c) {
@@ -311,5 +198,6 @@
       return { listMap, keysSorted} ;
     }
   </script>
+  <script src="swimlanes.js"></script>
 </body>
 </html>
