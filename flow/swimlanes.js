@@ -416,6 +416,8 @@
   var linkDataArray = [];
   
   function createInitView(sortedSystems, sortedSubSystems) {
+    nodeDataArray = [];
+    linkDataArray = [];
     sortedSystems.forEach(record => {
         nodeDataArray.push({
           key: `system#${record}`, 
@@ -473,6 +475,7 @@
   }
   function addNewLink(fromIndex, toIndex) {
     myDiagram.model.addLinkData({ "from": fromIndex, "to":  toIndex });
+    relayoutLanes();
   }
   // View generation
   function generateView() {

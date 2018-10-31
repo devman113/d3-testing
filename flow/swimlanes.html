@@ -82,13 +82,14 @@
       });
     }
     function generateSortedSystemSubSystem(dataSet) {
-      var subSystems = dataSet.map(record => { 
+      var filteredDataSet = dataSet.filter(record => !checkBlocking(record));
+      var subSystems = filteredDataSet.map(record => { 
         return {
           subSystem: record['Subsystem'],
           System: record['System']
         }
       });
-      var systems = dataSet.map(record => record['System']);
+      var systems = filteredDataSet.map(record => record['System']);
 
       createInitView(systems, subSystems);
     }
@@ -119,6 +120,7 @@
         
         if (document.getElementById(property.id).checked === false) blockList[category].push(itemToBlock);
       });
+      generateSortedSystemSubSystem(dataSet);
     }
     function checkBlocking(dataElement) {
       var isBlocked = false;
