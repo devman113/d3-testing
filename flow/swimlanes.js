@@ -1,7 +1,8 @@
  // These parameters need to be set before defining the templates.
   var MINLENGTH = 200;  // this controls the minimum length of any swimlane
   var MINBREADTH = 20;  // this controls the minimum breadth of any non-collapsed swimlane
-
+  var colorGroupGreen = ["#dcedc8", "#aed581", "#7cb342", "#33691e", "#33691e"];
+  var colorGroupRed = ["#f50057"];
   // some shared functions
 
   // this may be called to force the lanes to be laid out again
@@ -219,7 +220,7 @@
       $(go.Node, "Auto",
         new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
         $(go.Shape, "Rectangle",
-          { fill: "green", width: 200, portId: "", cursor: "pointer", fromLinkable: true, toLinkable: true }),
+          { fill: colorGroupGreen[2], stroke: colorGroupGreen[3], width: 200, portId: "", cursor: "pointer", fromLinkable: true, toLinkable: true }),
         $(go.TextBlock, { margin: 5 },
           new go.Binding("text", "key")),
         { dragComputation: stayInGroup } // limit dragging of Nodes to stay within the containing Group, defined above
@@ -300,25 +301,25 @@
           $(go.Panel, "Horizontal",  // this is hidden when the swimlane is collapsed
             new go.Binding("visible", "isSubGraphExpanded").ofObject(),
             $(go.Shape, "Diamond",
-              { width: 8, height: 8, fill: "white" },
+              { width: 8, height: 8, fill: colorGroupRed[0] },
               new go.Binding("fill", "color")),
             $(go.TextBlock,  // the lane label
-              { font: "bold 13pt sans-serif", editable: true, margin: new go.Margin(2, 0, 0, 0) },
+              { font: "bold 12pt sans-serif", stroke: colorGroupGreen[4], editable: true, margin: new go.Margin(2, 0, 0, 2) },
               new go.Binding("text", "text").makeTwoWay())
           ),
           $("SubGraphExpanderButton", { margin: 5 })  // but this remains always visible!
         ),  // end Horizontal Panel
         $(go.Panel, "Auto",  // the lane consisting of a background Shape and a Placeholder representing the subgraph
           $(go.Shape, "Rectangle",  // this is the resized object
-            { name: "SHAPE", fill: "white" },
+            { name: "SHAPE", fill: colorGroupGreen[0], stroke: colorGroupGreen[3] },
             new go.Binding("fill", "color"),
             new go.Binding("desiredSize", "size", go.Size.parse).makeTwoWay(go.Size.stringify)),
           $(go.Placeholder,
             { padding: 12, alignment: go.Spot.TopLeft }),
           $(go.TextBlock,  // this TextBlock is only seen when the swimlane is collapsed
             { name: "LABEL",
-              font: "bold 13pt sans-serif", editable: true,
-              angle: 0, alignment: go.Spot.TopLeft, margin: new go.Margin(2, 0, 0, 4) },
+              font: "bold 12pt sans-serif", stroke: colorGroupGreen[4], editable: true,
+              angle: 0, alignment: go.Spot.TopLeft, margin: new go.Margin(12, 12, 12, 12) },
             new go.Binding("visible", "isSubGraphExpanded", function(e) { return !e; }).ofObject(),
             new go.Binding("text", "text").makeTwoWay())
         )  // end Auto Panel
@@ -427,11 +428,10 @@
         key: `subSystem#${record["subSystem"]}`, 
         text: record["subSystem"] === "" ? "No Subsystem" : `${record["subSystem"]}`, 
         group: `system#${record["System"]}`,
+        color: colorGroupGreen[1],
         isGroup: true
       });
     });
-
-    nodeDataArray = removeDuplication(nodeDataArray);
 
     dataSet.forEach(singleData => {
       addNewNode(`subSystem#${singleData['Subsystem']}`, singleData['Program Name']);
@@ -444,7 +444,9 @@
       });
     });
 
+    nodeDataArray = removeDuplication(nodeDataArray);
     generateView();
+
   }
   function addNewNode(group, program) {
     var newNode = {
@@ -452,7 +454,6 @@
       group: group
     };
     nodeDataArray.push(newNode);
-    nodeDataArray = removeDuplication(nodeDataArray);
   }
   function removeDuplication(source) {
     return source.filter((thing, index, self) =>
@@ -462,7 +463,6 @@
     );
   }
   function generateView() {
-    console.log(linkDataArray);
     myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
     relayoutLanes();
   }
