@@ -434,7 +434,8 @@
     });
 
     dataSet.forEach(singleData => {
-      addNewNode(`subSystem#${singleData['Subsystem']}`, singleData['Program Name']);
+      if (!checkBlocking(singleData))
+        addNewNode(`subSystem#${singleData['Subsystem']}`, singleData['Program Name']);
     });  
 
     transformationData.forEach(eachTransform => {
@@ -462,6 +463,18 @@
       ))
     );
   }
+  // New link connection
+  function insertConnection() {
+    var fromIndex = $('#fromColumns').val();
+    var toIndex = $('#toColumns').val();
+    addNewLink(fromIndex, toIndex);
+    if (document.getElementById("checkBilateral").checked === true)
+    addNewLink(toIndex, fromIndex);
+  }
+  function addNewLink(fromIndex, toIndex) {
+    myDiagram.model.addLinkData({ "from": fromIndex, "to":  toIndex });
+  }
+  // View generation
   function generateView() {
     myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
     relayoutLanes();
