@@ -1,0 +1,12 @@
+{
+  "name": "server-dataflow",
+  "version": "1.0.0",
+  "description": "The API saves Data transformation data into a file",
+  "main": "app.js",
+  "scripts": {},
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4"
+  }
+}
