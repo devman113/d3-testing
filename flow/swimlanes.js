@@ -3,6 +3,9 @@
   var MINBREADTH = 20;  // this controls the minimum breadth of any non-collapsed swimlane
   var colorGroupGreen = ["#dcedc8", "#aed581", "#7cb342", "#33691e", "#33691e"];
   var colorGroupRed = ["#f50057"];
+
+  var server_host = "http://localhost:3000";
+  var client_host = "http://localhost:8000";
   // some shared functions
 
   // this may be called to force the lanes to be laid out again
@@ -383,8 +386,8 @@
       );
 
     // force all lanes' layouts to be performed
-    dataSource = jQuery.getJSON('http://localhost:8000/data/mockDataAssociated.json');
-    dataTransformation = jQuery.getJSON('http://localhost:8000/data/DataTransformation.json');
+    dataSource = jQuery.getJSON(client_host+'/data/mockDataAssociated.json');
+    dataTransformation = jQuery.getJSON(client_host+'/data/DataTransformation.json');
       
     jQuery.when(dataSource, dataTransformation)
       .done(function(dataSourceResult, dataTransformationResult) {
@@ -408,7 +411,7 @@
 
     jQuery.ajax({
       type: 'POST',
-      url: 'http://localhost:3000/saveTransformation/',
+      url: server_host+'/saveTransformation/',
       data: JSON.stringify ({ source: toSaveJSON['linkDataArray'] }),
       success: function(data) { console.log('data: ' + data.msg); },
       contentType: "application/json",
@@ -416,7 +419,7 @@
     });
   }
   function load() {
-    jQuery.getJSON('http://localhost:3000/transformationData', function(result) {
+    jQuery.getJSON(server_host+'/transformationData', function(result) {
       transformationData = result;
       var filters = Object.keys(dataSet[0]);
 
