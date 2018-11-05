@@ -403,12 +403,30 @@
 
   // Show the diagram's model in JSON format
   function save() {
-    document.getElementById("mySavedModel").value = myDiagram.model.toJson();
-    myDiagram.isModified = false;
+    var toSave = myDiagram.model.toJson();
+    var toSaveJSON = JSON.parse(toSave);
+
+    jQuery.ajax({
+      type: 'POST',
+      url: 'http://localhost:3000/saveTransformation/',
+      data: JSON.stringify ({ source: toSaveJSON['linkDataArray'] }),
+      success: function(data) { console.log('data: ' + data.msg); },
+      contentType: "application/json",
+      dataType: 'json'
+    });
   }
   function load() {
-    myDiagram.model = go.Model.fromJson(document.getElementById("mySavedModel").value);
-    myDiagram.delayInitialization(relayoutDiagram);
+    jQuery.getJSON('http://localhost:3000/transformationData', function(result) {
+      transformationData = result;
+      var filters = Object.keys(dataSet[0]);
+
+      generateColumns(filters);
+      generateOptionsPrograms(dataSet);
+      generateSortedSystemSubSystem(dataSet);
+
+      relayoutLanes();
+      myDiagram.delayInitialization(relayoutDiagram);
+    });
   }
 
   // ----- Data population -----
@@ -440,6 +458,7 @@
         addNewNode(`subSystem#${singleData['Subsystem']}`, singleData['Program Name']);
     });  
 
+    if (transformationData)
     transformationData.forEach(eachTransform => {
       linkDataArray.push({
         from: eachTransform.from,
